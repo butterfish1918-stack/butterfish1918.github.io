@@ -1,0 +1,19 @@
+{
+  "name": "The PAIN Engine",
+  "short_name": "PAIN Engine",
+  "description": "Chinese vocabulary review with Recurring Pain and Struggle Session modes.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "./icons/pain-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
