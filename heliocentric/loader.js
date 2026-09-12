@@ -1,40 +1,48 @@
 (async () => {
-  const BUILD = '5';
-  const parts = [
-    `./app.part00.txt?v=${BUILD}`,
-    `./app.part01.txt?v=${BUILD}`,
-    `./app.part02.txt?v=${BUILD}`,
-    `./app.part03.txt?v=${BUILD}`,
-    `./app.part04.txt?v=${BUILD}`
-  ];
+  const BUILD = '7';
+  const root = document.getElementById('root');
+
+  const fail = (message, detail = '') => {
+    console.error('Heliocentric startup error:', message, detail);
+    if (root) {
+      const safe = String(detail || message || 'Unknown startup error')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      root.innerHTML = `<div class="fatal-error"><strong>Heliocentric could not start.</strong><span>${safe}</span></div>`;
+    }
+  };
 
   try {
-    const responses = await Promise.all(parts.map((url) => fetch(url, { cache: 'no-store' })));
-    if (responses.some((response) => !response.ok)) {
-      throw new Error('Could not load application source.');
+    if (!window.React || !window.ReactDOM) {
+      throw new Error('React runtime did not load.');
     }
 
-    const chunks = await Promise.all(responses.map((response) => response.text()));
+    const partNames = [
+      'app.part00.txt',
+      'app.part01.txt',
+      'app.part02.txt',
+      'app.part03.txt',
+      'app.part04.txt'
+    ];
 
-    // Early builds were split at an unsafe character boundary. If a legacy
-    // overlap is ever returned by an old PWA cache, normalize it before Babel.
-    const legacyOverlap = "', 'entropy', 'harmonicMorph', 'rootFreq', 'feedbackIntensity'];\n";
-    if (chunks[2] && chunks[2].startsWith(legacyOverlap)) {
-      chunks[2] = chunks[2].slice(legacyOverlap.length);
-    }
-
-    if (chunks.some((chunk) => !chunk || !chunk.trim())) {
-      throw new Error('Application source is incomplete.');
+    const chunks = [];
+    for (const name of partNames) {
+      const response = await fetch(`./${name}?v=${BUILD}`, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`${name} failed to load (${response.status}).`);
+      }
+      const text = await response.text();
+      if (!text.trim()) {
+        throw new Error(`${name} was empty.`);
+      }
+      chunks.push(text);
     }
 
     const source = chunks.join('');
-    const compiled = Babel.transform(source, { presets: ['react'], sourceType: 'script' }).code;
-    new Function(compiled)();
+    // This source is precompiled ES2019 JavaScript. No Babel/runtime JSX compiler is used.
+    new Function(`${source}\n//# sourceURL=heliocentric-app-v${BUILD}.js`)();
   } catch (error) {
-    console.error('Heliocentric startup error:', error);
-    const root = document.getElementById('root');
-    if (root) {
-      root.innerHTML = '<div class="fatal-error"><strong>Heliocentric could not start.</strong><span>The app cache was repaired. Close this tab and open Heliocentric again.</span></div>';
-    }
+    fail('Startup failed', error && (error.stack || error.message) ? (error.stack || error.message) : String(error));
   }
 })();
