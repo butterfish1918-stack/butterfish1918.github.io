@@ -12,21 +12,32 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./styles.css">
-
 </head>
 <body>
 
     <canvas id="visualiser" aria-label="Hyper-Liminoid interactive synthesizer"></canvas>
 
     <div id="ui-layer">
-        <div class="topbar">
-            <div class="brand">
-                <h1>Hyper-Liminoid v11.2</h1>
-                <p id="active-param">Param: NULL</p>
+        <div class="interface-frame" aria-hidden="true"></div>
+
+        <header class="topbar">
+            <div class="brand-panel">
+                <div class="brand-row">
+                    <span class="system-mark" aria-hidden="true"></span>
+                    <h1>Hyper-Liminoid <span>v11.2</span></h1>
+                </div>
+                <div class="status-row">
+                    <span id="engine-status" class="engine-status"><i></i> Engine dormant</span>
+                    <span class="status-divider" aria-hidden="true"></span>
+                    <p id="active-param">Awaiting input</p>
+                </div>
             </div>
 
-            <div id="vis-clear-container">
-                <p>Spectral Clarity</p>
+            <div id="vis-clear-container" class="clarity-panel">
+                <div class="clarity-heading">
+                    <span>Spectral Clarity</span>
+                    <span id="clarity-value">70</span>
+                </div>
                 <input
                     type="range"
                     id="vis-clarity"
@@ -38,22 +49,65 @@
                     aria-label="Spectral clarity"
                 >
             </div>
-        </div>
+        </header>
+
+        <div class="corner-index corner-index-left" aria-hidden="true">HL // 11.2</div>
+        <div class="corner-index corner-index-right" aria-hidden="true">TRANSPARENT VORTEX</div>
+
+        <footer class="interaction-legend" aria-label="Interaction guide">
+            <span><b>01</b> Tap focus</span>
+            <span><b>02</b> Tap again toggle</span>
+            <span><b>03</b> Drag level</span>
+            <span><b>04</b> Drag controls</span>
+        </footer>
 
         <div id="start-overlay">
+            <div class="start-ambient" aria-hidden="true"></div>
             <div class="start-card">
-                <h2>The Transparent Void</h2>
-                <div class="start-copy">
-                    <p>• Historical Temperament: Full 10-System Roster Restored</p>
-                    <p>• Visual Control: Top-Right "Clarity" Slider for Mess Management</p>
-                    <p>• Physics: Tanh-Waveguides &amp; Shadow Bass Intact</p>
-                    <p>• Touch: Optimised for Tactile Mobile Interaction</p>
+                <div class="start-kicker">
+                    <span class="start-kicker-line"></span>
+                    <span>Audio-visual instrument // system 11.2</span>
+                    <span class="start-kicker-line"></span>
                 </div>
+
+                <h2>The Transparent <em>Void</em></h2>
+                <p class="start-subtitle">A spatial synthesis environment built around unstable tuning, tactile control and spectral feedback.</p>
+
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <span class="feature-code">01 / TUNE</span>
+                        <strong>Historical Temperament</strong>
+                        <small>Ten tuning systems retained in full.</small>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-code">02 / BODY</span>
+                        <strong>Waveguide Physics</strong>
+                        <small>Tanh feedback with shadow-bass response.</small>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-code">03 / FIELD</span>
+                        <strong>Spectral Vision</strong>
+                        <small>Persistent vortex rendering with clarity control.</small>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-code">04 / TOUCH</span>
+                        <strong>Tactile Interaction</strong>
+                        <small>Designed for pointer, touch and mobile play.</small>
+                    </div>
+                </div>
+
                 <div class="action-row">
-                    <button id="start-btn" type="button">Reveal the Core</button>
-                    <button id="install-btn" type="button" hidden>Install App</button>
+                    <button id="start-btn" type="button"><span>Reveal the Core</span><i aria-hidden="true">↗</i></button>
+                    <button id="install-btn" type="button" hidden><span>Install App</span><i aria-hidden="true">↓</i></button>
                 </div>
-                <p class="mobile-help">Tap a note to focus. Tap it again to toggle sound. Drag vertically to change volume.</p>
+
+                <div class="start-footer">
+                    <span>Tap a note to focus</span>
+                    <span class="start-footer-dot">•</span>
+                    <span>Tap again to sound</span>
+                    <span class="start-footer-dot">•</span>
+                    <span>Drag vertically to shape</span>
+                </div>
             </div>
         </div>
     </div>
