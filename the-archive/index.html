@@ -1,363 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#121110">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="The Archive">
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" href="./icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg">
-    <title>The Archive: Antwerp Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-
-    <!-- Portable storage: works immediately on GitHub Pages/Android.
-         Optional Firebase cloud sync can be enabled in config.js. -->
-    <script src="./config.js"></script>
-    <script type="module">
-        const COLLECTIONS = ['outfits', 'perfumes', 'archetypes', 'hairstyles'];
-        const APP_ID = window.ARCHIVE_APP_ID || 'the-archive-antwerp';
-        const FIREBASE_CONFIG = window.ARCHIVE_FIREBASE_CONFIG || null;
-        const storageKey = (type) => `archive:v9:${APP_ID}:${type}`;
-
-        function localRead(type) {
-            try { return JSON.parse(localStorage.getItem(storageKey(type)) || '[]'); }
-            catch { return []; }
-        }
-        function localWrite(type, items) {
-            localStorage.setItem(storageKey(type), JSON.stringify(items));
-            window.dispatchEvent(new CustomEvent('archive-local-change', { detail: { type } }));
-        }
-        function mergeItems(current, incoming) {
-            const map = new Map(current.map(item => [String(item.id || item.name), item]));
-            incoming.forEach(item => map.set(String(item.id || item.name), item));
-            return Array.from(map.values());
-        }
-
-        async function createLocalAdapter() {
-            return {
-                mode: 'local',
-                async init() { return { uid: 'local-device' }; },
-                subscribe(type, cb) {
-                    const emit = () => cb(localRead(type));
-                    emit();
-                    const onCustom = (e) => { if (e.detail?.type === type) emit(); };
-                    const onStorage = (e) => { if (e.key === storageKey(type)) emit(); };
-                    window.addEventListener('archive-local-change', onCustom);
-                    window.addEventListener('storage', onStorage);
-                    return () => {
-                        window.removeEventListener('archive-local-change', onCustom);
-                        window.removeEventListener('storage', onStorage);
-                    };
-                },
-                async saveItems(type, items) { localWrite(type, mergeItems(localRead(type), items)); },
-                async wipe(type) { localStorage.removeItem(storageKey(type)); window.dispatchEvent(new CustomEvent('archive-local-change', { detail: { type } })); }
-            };
-        }
-
-        async function createFirebaseAdapter(config) {
-            const [{ initializeApp }, authMod, fsMod] = await Promise.all([
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
-            ]);
-            const app = initializeApp(config);
-            const auth = authMod.getAuth(app);
-            const db = fsMod.getFirestore(app);
-            const path = (type) => fsMod.collection(db, 'artifacts', APP_ID, 'public', 'data', type);
-            return {
-                mode: 'cloud',
-                async init() {
-                    if (window.ARCHIVE_INITIAL_AUTH_TOKEN) await authMod.signInWithCustomToken(auth, window.ARCHIVE_INITIAL_AUTH_TOKEN);
-                    else await authMod.signInAnonymously(auth);
-                    return new Promise((resolve, reject) => {
-                        const stop = authMod.onAuthStateChanged(auth, u => { if (u) { stop(); resolve(u); } }, reject);
-                    });
-                },
-                subscribe(type, cb) {
-                    return fsMod.onSnapshot(fsMod.query(path(type)), snap => cb(snap.docs.map(d => d.data())));
-                },
-                async saveItems(type, items) {
-                    for (const item of items) {
-                        const id = String(item.id || item.name).replace(/\//g, '_');
-                        await fsMod.setDoc(fsMod.doc(db, 'artifacts', APP_ID, 'public', 'data', type, id), item);
-                    }
-                },
-                async wipe(type) {
-                    const snap = await fsMod.getDocs(path(type));
-                    for (const d of snap.docs) await fsMod.deleteDoc(d.ref);
-                }
-            };
-        }
-
-        try {
-            const useCloud = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId;
-            window.ArchiveStorage = useCloud ? await createFirebaseAdapter(FIREBASE_CONFIG) : await createLocalAdapter();
-        } catch (error) {
-            console.warn('Cloud storage unavailable; falling back to local device storage.', error);
-            window.ArchiveStorage = await createLocalAdapter();
-        }
-        window.dispatchEvent(new Event('archive-storage-ready'));
-    </script>
-
-    <style>
-        body {
-            background-color: #121110;
-            color: #d6d3d1;
-            font-family: 'Inter', sans-serif;
-            font-weight: 300;
-            overflow-y: scroll;
-            -webkit-font-smoothing: antialiased;
-        }
-        .card { background-color: rgba(28, 25, 23, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(120, 113, 108, 0.15); border-radius: 2px; transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .card:hover { background-color: rgba(28, 25, 23, 0.9); border-color: rgba(168, 162, 158, 0.4); transform: translateY(-3px); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.7); }
-        .category-block { background: rgba(255, 255, 255, 0.02); border-left: 2px solid rgba(168, 162, 158, 0.3); padding: 0.75rem 1rem; transition: background 0.3s ease; }
-        .category-block:hover { background: rgba(255, 255, 255, 0.04); border-left-color: rgba(214, 211, 209, 0.6); }
-        .serif-title { font-family: 'Playfair Display', serif; }
-        .protocol-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.25em; color: #a8a29e; margin-bottom: 0.5rem; display: block; font-weight: 600; }
-        .narrative-text { font-family: 'Playfair Display', serif; font-style: italic; color: #e7e5e4; font-size: 1.05rem; line-height: 1.7; }
-        .filter-btn { position: relative; transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .filter-btn::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background-color: #fafaf9; transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .filter-active { color: #fafaf9; }
-        .filter-active::after { width: 100%; }
-        .filter-inactive { color: #57534e; }
-        .filter-inactive:hover { color: #d6d3d1; }
-        .bg-grid { background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 30px 30px; }
-        [x-cloak] { display: none !important; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #121110; }
-        ::-webkit-scrollbar-thumb { background: #292522; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #57534e; }
-        input[type="file"] { display: none; }
-        @keyframes pulse-status { 0% { opacity: 0.2; transform: scaleY(1); } 50% { opacity: 0.9; transform: scaleY(1.02); } 100% { opacity: 0.2; transform: scaleY(1); } }
-        .animate-status { animation: pulse-status 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
-        .scanline-effect::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(255, 255, 255, 0.08); animation: scanline 4s linear infinite; pointer-events: none; }
-        .loader-bar { background: linear-gradient(90deg, transparent, #d6d3d1, transparent); background-size: 200% 100%; animation: loading-slide 2s infinite linear; }
-        @keyframes loading-slide { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .index-subgroup-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.15em; color: #78716c; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(87, 83, 78, 0.3); padding-bottom: 0.25rem; }
-        .index-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .index-item:hover { background-color: rgba(255, 255, 255, 0.03); border-color: rgba(168, 162, 158, 0.4); padding-left: 0.75rem; }
-        .count-badge { cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .count-badge:hover { background-color: #fafaf9; color: #121110; transform: scale(1.1); }
-        .outfit-link, .perfume-link, .note-perfume-link, .hair-link { font-size: 0.65rem; color: #a8a29e; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .outfit-link:hover, .perfume-link:hover, .note-perfume-link:hover, .hair-link:hover { color: #ffffff; transform: translateX(4px); }
-        .outline-box, .perfume-outline-box { background-color: rgba(20, 19, 17, 0.95); border: 1px solid rgba(168, 162, 158, 0.3); border-left: 3px solid rgba(214, 211, 209, 0.7); border-radius: 2px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); transition: all 0.4s ease; }
-        .note-header { color: #a8a29e; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; border-bottom: 1px solid rgba(120, 113, 108, 0.4); margin-bottom: 0.5rem; padding-bottom: 0.25rem; }
-        .note-item { color: #ffffff; font-size: 0.75rem; line-height: 1.6; font-weight: 400; }
-        .heatmap-container { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: flex-start; }
-        .heatmap-tag { cursor: pointer; transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); white-space: nowrap; }
-        .heatmap-tag:hover { color: #ffffff !important; opacity: 1 !important; transform: scale(1.15) translateY(-2px); text-shadow: 0 0 15px rgba(255,255,255,0.2); }
-        .archetype-flap { background: rgba(24, 24, 27, 0.95); border: 1px solid rgba(168, 162, 158, 0.2); border-left: 4px solid #fafaf9; backdrop-filter: blur(24px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); }
-        .custom-file-upload { display: inline-block; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .custom-file-upload:hover { background-color: #fafaf9; color: #121110; border-color: #fafaf9; }
-        .purge-btn { transition: all 0.3s ease; }
-        .purge-btn:hover { letter-spacing: 0.2rem; }
-
-        /* Mobile / Android refinement */
-        html { background: #121110; overscroll-behavior-y: none; }
-        body { min-height: 100dvh; padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        button, label, .count-badge, .outfit-link, .perfume-link, .note-perfume-link, .hair-link, .heatmap-tag { touch-action: manipulation; }
-        @media (max-width: 767px) {
-            body { padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom)); }
-            header { margin-bottom: 2rem !important; }
-            header > div:first-child { align-items: stretch !important; margin-bottom: 2rem !important; }
-            header h1 { font-size: clamp(2.6rem, 14vw, 4.2rem) !important; line-height: .95; }
-            header p { letter-spacing: .16em !important; line-height: 1.5; }
-            header .flex.flex-col.items-end { align-items: stretch !important; width: 100%; }
-            header .flex.gap-8, header .flex.gap-6 { gap: .55rem !important; overflow-x: auto; padding: .15rem 0 .65rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-            header .flex.gap-8::-webkit-scrollbar, header .flex.gap-6::-webkit-scrollbar { display: none; }
-            .filter-btn { min-height: 44px; flex: 0 0 auto; }
-            nav { gap: .35rem .9rem !important; padding-bottom: 1.4rem; }
-            nav .filter-btn { min-height: 40px; }
-            .card { border-radius: 5px; }
-            .card.p-10 { padding: 1.25rem !important; }
-            .card.p-8 { padding: 1.1rem !important; }
-            .card.p-6 { padding: 1rem !important; }
-            .archetype-flap { padding: 1.25rem !important; margin-top: 1.25rem !important; }
-            .archetype-flap h3 { font-size: 2rem !important; }
-            .heatmap-container { padding: 1.25rem !important; gap: 1rem !important; }
-            .perfume-outline-box.fixed { top: max(1rem, env(safe-area-inset-top)) !important; width: calc(100vw - 2rem) !important; max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; }
-            .category-block { padding: .8rem .9rem; }
-            .protocol-label { letter-spacing: .17em; }
-            .narrative-text { font-size: 1rem; }
-        }
-        @media (hover: none) { .card:hover, .index-item:hover, .heatmap-tag:hover { transform: none; } }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#121110">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Archive">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>The Archive · Wardrobe OS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="./config.js"></script>
+<script type="module" src="./storage.js"></script>
+<link rel="stylesheet" href="./app.css">
 </head>
-<body class="p-6 md:p-12 min-h-screen bg-grid" x-data="wardrobeApp()" x-init="initData()">
+<body class="bg-grid p-6 md:p-10" x-data="wardrobeApp()" x-init="initData()">
 
-    <div x-show="isPurging || isAdding" x-cloak class="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#121110] scanline-effect" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div class="flex flex-col items-center max-w-sm w-full">
-            <div class="w-full h-px bg-stone-800 mb-8"></div>
-            <h2 x-show="isPurging" class="text-xs uppercase tracking-[0.5em] text-red-600 mb-2 animate-status">Nullifying Distributed Archive</h2>
-            <h2 x-show="isAdding" class="text-xs uppercase tracking-[0.5em] text-stone-300 mb-2 animate-status">Establishing Distributed Taxonomy</h2>
-            <div class="w-full h-1 bg-stone-900 overflow-hidden mb-8 mt-4"><div class="h-full loader-bar w-full"></div></div>
-            <p class="font-mono text-[10px] text-stone-500 uppercase tracking-widest text-center" x-text="isPurging ? 'Purging taxonomic metadata...' : 'Committing protocols to archive.'"></p>
-            <div class="w-full h-px bg-stone-800 mt-8"></div>
-        </div>
+<!-- MODALS -->
+<div x-show="garmentModal" x-cloak class="fixed inset-0 z-[120] modal-bg flex items-center justify-center p-3" @keydown.escape.window="garmentModal=false">
+  <div class="modal-panel card w-full max-w-3xl p-6 md:p-8 border-t-4 border-t-stone-500">
+    <div class="flex justify-between items-start gap-4 mb-6"><div><div class="label mb-2">Garment Protocol</div><h2 class="section-title" x-text="editingGarmentId?'Edit garment':'Add garment'"></h2></div><button class="btn" @click="garmentModal=false">Close ×</button></div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <label class="block cursor-pointer"><div class="thumb rounded-sm flex items-center justify-center"><template x-if="garmentDraft.image"><img :src="garmentDraft.image" alt="Garment"></template><template x-if="!garmentDraft.image"><div class="text-center p-6"><div class="text-3xl mb-2">＋</div><div class="label">Add photo</div></div></template></div><input type="file" accept="image/*" capture="environment" @change="handleGarmentPhoto($event)"></label>
+        <p class="text-[10px] text-stone-600 mt-2 leading-relaxed">Photos are compressed before storage so Android browser storage remains usable.</p>
+      </div>
+      <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2"><span class="label">Name</span><input class="field mt-2" x-model="garmentDraft.name" placeholder="Charcoal double-breasted jacket"></div>
+        <div><span class="label">Category</span><select class="field mt-2" x-model="garmentDraft.category"><template x-for="c in garmentCategories"><option :value="c" x-text="c"></option></template></select></div>
+        <div><span class="label">Status</span><select class="field mt-2" x-model="garmentDraft.status"><template x-for="s in garmentStatuses"><option :value="s" x-text="s"></option></template></select></div>
+        <div><span class="label">Brand</span><input class="field mt-2" x-model="garmentDraft.brand"></div>
+        <div><span class="label">Colour</span><div class="flex gap-2 mt-2"><input class="field" x-model="garmentDraft.color" placeholder="Charcoal"><input type="color" class="w-12 h-[42px] bg-transparent" x-model="garmentDraft.colorHex"></div></div>
+        <div><span class="label">Material</span><input class="field mt-2" x-model="garmentDraft.material" placeholder="Wool"></div>
+        <div><span class="label">Size</span><input class="field mt-2" x-model="garmentDraft.size"></div>
+        <div><span class="label">Season</span><input class="field mt-2" x-model="garmentDraft.seasonsText" placeholder="AUTUMN; WINTER"></div>
+        <div><span class="label">Formality 1–5</span><input type="number" min="1" max="5" class="field mt-2" x-model.number="garmentDraft.formality"></div>
+        <div><span class="label">Purchase price</span><input type="number" step="0.01" class="field mt-2" x-model.number="garmentDraft.price"></div>
+        <div><span class="label">Purchase date</span><input type="date" class="field mt-2" x-model="garmentDraft.purchaseDate"></div>
+        <div><span class="label">Fit / tailoring status</span><input class="field mt-2" x-model="garmentDraft.fit" placeholder="Sleeves shortened 2 cm"></div>
+        <div><span class="label">Care</span><input class="field mt-2" x-model="garmentDraft.care" placeholder="Dry clean only"></div>
+        <div class="md:col-span-2"><span class="label">Tags</span><input class="field mt-2" x-model="garmentDraft.tagsText" placeholder="WORK, 1950s, DATE, RAIN"></div>
+        <div class="md:col-span-2"><span class="label">Notes</span><textarea rows="3" class="field mt-2" x-model="garmentDraft.notes"></textarea></div>
+      </div>
     </div>
+    <div class="flex flex-wrap justify-end gap-3 mt-6"><button class="btn" @click="garmentModal=false">Cancel</button><button class="btn btn-primary" @click="saveGarment()">Save garment</button></div>
+  </div>
+</div>
 
-    <div x-show="showWipeModal && !isPurging && !isAdding" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-6" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-        <div class="card p-10 max-w-md w-full border-t-4 border-t-red-600 shadow-2xl">
-            <h2 class="text-2xl serif-title text-stone-100 mb-4">Confirm Purge</h2>
-            <p class="text-stone-400 text-sm mb-8 leading-relaxed" x-text="`This will permanently eradicate all distributed ${wipeType} protocols.`"></p>
-            <div class="flex gap-4">
-                <button @click="executeWipe()" class="flex-1 bg-red-900/20 border border-red-600 text-red-500 py-3 text-xs uppercase tracking-widest font-bold hover:bg-red-600 hover:text-white transition-all transform hover:scale-105">Yes, Purge</button>
-                <button @click="showWipeModal = false" class="flex-1 border border-stone-600 text-stone-400 py-3 text-xs uppercase tracking-widest font-bold hover:bg-stone-200 hover:text-stone-900 transition-all transform hover:scale-105">Cancel</button>
-            </div>
-        </div>
+<div x-show="outfitModal" x-cloak class="fixed inset-0 z-[120] modal-bg flex items-center justify-center p-3" @keydown.escape.window="outfitModal=false">
+  <div class="modal-panel card w-full max-w-xl p-7 border-t-4 border-t-stone-500">
+    <div class="flex justify-between items-start mb-6"><div><div class="label mb-2">Outfit Record</div><h2 class="section-title">Save composition</h2></div><button class="btn" @click="outfitModal=false">Close ×</button></div>
+    <div class="space-y-4"><div><span class="label">Name</span><input class="field mt-2" x-model="outfitDraft.name" placeholder="Monday graphite protocol"></div><div><span class="label">Description</span><textarea class="field mt-2" rows="3" x-model="outfitDraft.description"></textarea></div><div class="grid grid-cols-2 gap-4"><div><span class="label">Season</span><select class="field mt-2" x-model="outfitDraft.season"><template x-for="s in seasons"><option :value="s" x-text="s"></option></template></select></div><div><span class="label">Archetype</span><select class="field mt-2" x-model="outfitDraft.archetype"><option value="">None</option><template x-for="a in availableArchetypes"><option :value="a" x-text="a"></option></template></select></div></div><div><span class="label">Occasion tags</span><input class="field mt-2" x-model="outfitDraft.occasion" placeholder="WORK, DATE"></div></div>
+    <div class="mt-6 p-4 bg-stone-950/40 border border-stone-800"><div class="label mb-2">Selected</div><div class="text-sm text-stone-300" x-text="`${builderSelected.length} garments · score ${builderScore.total}/100`"></div></div>
+    <div class="flex justify-end gap-3 mt-6"><button class="btn" @click="outfitModal=false">Cancel</button><button class="btn btn-primary" @click="saveBuiltOutfit()">Commit outfit</button></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="max-w-7xl mx-auto mb-8 border-b border-stone-800 pb-6">
+  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+    <div><h1 class="text-5xl md:text-6xl serif text-stone-100 tracking-tighter">The Archive<span class="text-stone-600">.</span></h1><p class="text-stone-500 text-[10px] md:text-xs uppercase tracking-[.28em] mt-3">Wardrobe Operating System v10.0 · Antwerp Edition</p></div>
+    <div class="flex flex-col gap-3 lg:items-end"><div class="relative w-full lg:w-80"><input class="field pl-9" x-model="globalSearch" placeholder="Search the wardrobe…"><span class="absolute left-3 top-3 text-stone-600">⌕</span></div><div class="text-[10px] uppercase tracking-widest text-stone-600" x-text="storageStatus"></div></div>
+  </div>
+  <nav class="topnav flex gap-7 mt-6 mini-scroll">
+    <template x-for="t in tabs"><button class="tab" :class="currentView===t.id?'active':''" @click="currentView=t.id" x-text="t.label"></button></template>
+  </nav>
+</header>
+
+<main class="max-w-7xl mx-auto pb-24">
+<!-- DASHBOARD -->
+<section x-show="currentView==='dashboard'" x-cloak>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="card p-5"><div class="label">Garments</div><div class="metric mt-2" x-text="garments.length"></div><div class="text-[11px] text-stone-600 mt-1" x-text="`${availableGarments.length} available`"></div></div>
+    <div class="card p-5"><div class="label">Outfits</div><div class="metric mt-2" x-text="outfits.length"></div><div class="text-[11px] text-stone-600 mt-1" x-text="`${linkedOutfits.length} linked`"></div></div>
+    <div class="card p-5"><div class="label">Wear events</div><div class="metric mt-2" x-text="wears.length"></div><div class="text-[11px] text-stone-600 mt-1">Recorded rotation</div></div>
+    <div class="card p-5"><div class="label">Wardrobe value</div><div class="metric mt-2" x-text="money(totalWardrobeValue)"></div><div class="text-[11px] text-stone-600 mt-1">Known purchase prices</div></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 card p-6 md:p-8">
+      <div class="flex items-center justify-between gap-4 mb-6"><div><div class="label mb-2">Daily Protocol</div><h2 class="section-title">What should I wear?</h2></div><button class="btn btn-primary" @click="generateOutfit()">Generate</button></div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"><select class="field" x-model="generator.season"><template x-for="s in seasons"><option :value="s" x-text="s"></option></template></select><select class="field" x-model="generator.occasion"><template x-for="o in occasions"><option :value="o" x-text="o"></option></template></select><select class="field" x-model="generator.archetype"><option value="">Any archetype</option><template x-for="a in availableArchetypes"><option :value="a" x-text="a"></option></template></select><select class="field" x-model="generator.weather"><option>DRY</option><option>RAIN</option><option>COLD</option><option>HOT</option></select></div>
+      <div x-show="generatedLook.length" class="grid grid-cols-2 md:grid-cols-4 gap-4"><template x-for="g in generatedLook" :key="g.id"><div><div class="thumb rounded-sm"><template x-if="g.image"><img :src="g.image"></template><template x-if="!g.image"><div class="h-full flex items-center justify-center text-stone-700 text-3xl">◇</div></template></div><div class="text-sm text-white mt-2" x-text="g.name"></div><div class="text-[10px] uppercase tracking-widest text-stone-600" x-text="g.category"></div></div></template></div>
+      <div x-show="!generatedLook.length" class="border border-dashed border-stone-800 py-12 text-center text-stone-600 text-sm">Choose a protocol and generate from available garments.</div>
+      <div x-show="generatedLook.length" class="flex flex-wrap gap-3 mt-6"><button class="btn" @click="useGeneratedInBuilder()">Open in builder</button><span class="pill">Compatibility <strong class="text-white" x-text="generatedScore"></strong></span></div>
     </div>
+    <div class="card p-6 md:p-8"><div class="label mb-2">Rotation</div><h2 class="section-title mb-5">Recent wear</h2><div class="space-y-4"><template x-for="w in recentWears.slice(0,6)" :key="w.id"><div class="border-b border-stone-800 pb-3"><div class="text-xs text-stone-500" x-text="prettyDate(w.date)"></div><div class="text-sm text-white mt-1" x-text="getOutfitName(w.outfitId)"></div><div class="text-[10px] text-stone-600 uppercase tracking-widest" x-text="`${w.occasion||'—'} · ${w.rating||'—'}/5`"></div></div></template><div x-show="!wears.length" class="text-sm text-stone-600">No wear events yet.</div></div></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="card p-6"><div class="flex justify-between items-center mb-5"><div><div class="label mb-2">Upcoming</div><h3 class="text-xl serif text-white">Planned outfits</h3></div><button class="btn" @click="currentView='planner'">Planner</button></div><div class="space-y-3"><template x-for="p in upcomingPlans.slice(0,5)" :key="p.id"><div class="flex justify-between gap-4 border-b border-stone-800 pb-3"><div><div class="text-sm text-white" x-text="getOutfitName(p.outfitId)"></div><div class="text-xs text-stone-600" x-text="p.note||''"></div></div><div class="text-xs text-stone-400" x-text="prettyDate(p.date)"></div></div></template><div x-show="!upcomingPlans.length" class="text-sm text-stone-600">Nothing planned.</div></div></div>
+    <div class="card p-6"><div class="label mb-2">Maintenance</div><h3 class="text-xl serif text-white mb-5">Unavailable garments</h3><div class="flex flex-wrap gap-2"><template x-for="g in unavailableGarments.slice(0,12)" :key="g.id"><button class="pill" @click="openGarment(g)" x-text="`${g.name} · ${g.status}`"></button></template><span x-show="!unavailableGarments.length" class="text-sm text-stone-600">Everything is available.</span></div></div>
+  </div>
+</section>
 
-    <header class="mb-12 border-b border-stone-800 pb-8">
-        <div class="flex flex-col md:flex-row justify-between items-end mb-12">
-            <div>
-                <h1 class="text-5xl md:text-6xl serif-title text-stone-100 tracking-tighter">The Archive<span class="text-stone-600">.</span></h1>
-                <p class="text-stone-500 text-xs uppercase tracking-[0.3em] mt-3 ml-1 font-medium">Distributed Taxonomy System v9.0 · Mobile Archive</p>
-            </div>
-            <div class="flex flex-col items-end gap-6 mt-8 md:mt-0">
-                <div class="flex gap-8">
-                    <button @click="currentView = 'archive'" :class="currentView === 'archive' ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.8rem] uppercase tracking-[0.2em] font-bold py-2">Archive</button>
-                    <button @click="currentView = 'perfume'" :class="currentView === 'perfume' ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.8rem] uppercase tracking-[0.2em] font-bold py-2">Olfactory</button>
-                    <button @click="currentView = 'index'" :class="currentView === 'index' ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.8rem] uppercase tracking-[0.2em] font-bold py-2">Index</button>
-                    <button @click="currentView = 'database'" :class="currentView === 'database' ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.8rem] uppercase tracking-[0.2em] font-bold py-2 text-stone-400">Database</button>
-                </div>
-                <div class="flex gap-6" x-show="currentView === 'archive' || currentView === 'perfume'" x-transition>
-                    <template x-for="season in ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER']">
-                        <button @click="currentSeason = season" :class="currentSeason === season ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.65rem] uppercase tracking-[0.2em] font-semibold py-1" x-text="season"></button>
-                    </template>
-                </div>
-            </div>
-        </div>
-        <nav class="flex flex-wrap gap-x-10 gap-y-4 relative" x-show="(currentView === 'archive' || currentView === 'perfume') && outfits.length + perfumes.length > 0">
-            <button @click="currentArchetype = 'ALL'; showFlap = false" :class="currentArchetype === 'ALL' ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.65rem] uppercase tracking-[0.25em] font-bold">ALL ARCHETYPES</button>
-            <template x-for="arch in availableArchetypes" :key="arch">
-                <button @click="currentArchetype = arch" @dblclick="toggleFlap(arch)" @touchstart.passive="startArchetypePress(arch)" @touchend="endArchetypePress()" @touchcancel="endArchetypePress()" :class="currentArchetype === arch ? 'filter-active' : 'filter-inactive'" class="filter-btn text-[0.65rem] uppercase tracking-[0.25em] font-bold" x-text="arch"></button>
-            </template>
-            <div class="absolute -bottom-6 left-0 opacity-20 text-[10px] tracking-widest text-stone-500 uppercase">Double-click · or hold on mobile · for codex</div>
-        </nav>
-        <div x-show="showFlap && (currentView === 'archive' || currentView === 'perfume')" x-cloak class="archetype-flap mt-8 p-10 max-w-5xl">
-            <div class="flex justify-between items-start mb-10 border-b border-stone-800 pb-4"><h3 class="text-4xl serif-title text-white" x-text="explainedArchetype"></h3><button @click="showFlap = false" class="text-stone-500 hover:text-white transition-colors text-xs tracking-widest uppercase">Close ×</button></div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                <div class="lg:col-span-2 space-y-8"><div><span class="protocol-label !text-stone-400 !mb-2">Core Philosophy</span><p class="text-stone-200 text-sm font-medium tracking-wide leading-relaxed" x-text="getArchetypeProfile(explainedArchetype)?.philosophy || 'Protocol undefined.'"></p></div><div><span class="protocol-label !text-stone-400 !mb-2">Character Profile</span><p class="narrative-text text-stone-300" x-text="getArchetypeProfile(explainedArchetype)?.profile || 'Subject manifests traits outside current taxonomic parameters.'"></p></div></div>
-                <div class="category-block bg-stone-900/40 !border-l-stone-400 p-6 rounded-sm"><span class="protocol-label !text-stone-300 !mb-4">Follicular Protocols</span><div class="space-y-6"><template x-for="hair in getMatchingHairstyles(explainedArchetype)" :key="hair.name"><div class="group border-b border-stone-800/50 pb-4 last:border-0"><span class="text-white text-xs font-bold uppercase tracking-widest block mb-2" x-text="hair.name"></span><p class="text-stone-400 text-[11px] leading-relaxed italic" x-text="hair.blueprint"></p></div></template><div x-show="getMatchingHairstyles(explainedArchetype).length === 0" class="text-[0.65rem] italic text-stone-600">No follicular data recorded.</div></div></div>
-            </div>
-        </div>
-    </header>
+<!-- WARDROBE -->
+<section x-show="currentView==='wardrobe'" x-cloak>
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6"><div><div class="label mb-2">Inventory</div><h2 class="section-title">Physical wardrobe</h2></div><button class="btn btn-primary" @click="newGarment()">＋ Add garment</button></div>
+  <div class="card p-4 mb-6 grid grid-cols-1 md:grid-cols-5 gap-3"><input class="field md:col-span-2" x-model="wardrobeFilter.search" placeholder="Name, brand, tag, material…"><select class="field" x-model="wardrobeFilter.category"><option value="ALL">All categories</option><template x-for="c in garmentCategories"><option :value="c" x-text="c"></option></template></select><select class="field" x-model="wardrobeFilter.status"><option value="ALL">All statuses</option><template x-for="s in garmentStatuses"><option :value="s" x-text="s"></option></template></select><select class="field" x-model="wardrobeFilter.season"><option value="ALL">All seasons</option><template x-for="s in seasons"><option :value="s" x-text="s"></option></template></select></div>
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"><template x-for="g in filteredGarments" :key="g.id"><article class="card overflow-hidden"><div class="thumb"><template x-if="g.image"><img :src="g.image" :alt="g.name"></template><template x-if="!g.image"><div class="h-full flex items-center justify-center text-stone-700 text-4xl">◇</div></template></div><div class="p-4"><div class="flex justify-between items-start gap-2"><div><h3 class="text-sm text-white font-medium" x-text="g.name"></h3><div class="text-[10px] uppercase tracking-widest text-stone-600 mt-1" x-text="g.category"></div></div><span class="status-dot mt-1" :class="statusDotClass(g.status)"></span></div><div class="flex flex-wrap gap-1 mt-3"><span class="pill" x-text="g.status"></span><span class="pill" x-show="g.color" x-text="g.color"></span></div><div class="grid grid-cols-2 gap-2 mt-4 text-[10px] text-stone-500"><div>Wears <strong class="text-stone-300" x-text="garmentWearCount(g.id)"></strong></div><div>CPW <strong class="text-stone-300" x-text="money(costPerWear(g))"></strong></div></div><div class="flex gap-2 mt-4"><button class="btn flex-1 !py-2" @click="openGarment(g)">Edit</button><button class="btn flex-1 !py-2" @click="cycleGarmentStatus(g)">Status</button></div></div></article></template></div>
+  <div x-show="!filteredGarments.length" class="border border-dashed border-stone-800 py-24 text-center mt-4"><div class="text-stone-500">No garments match this filter.</div></div>
+</section>
 
-    <div x-show="currentView === 'database'" x-cloak class="max-w-6xl mx-auto pb-20 mt-10">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="card p-6 border-t-4 border-t-stone-600 flex flex-col justify-between"><div><h2 class="text-lg serif-title text-stone-100 mb-1">Sartorial</h2><p class="text-stone-500 text-[9px] mb-6 uppercase tracking-widest">Outfits</p><div class="bg-stone-900/40 p-3 border border-stone-800 rounded"><label class="custom-file-upload border border-stone-600 text-stone-200 px-3 py-2 text-[0.55rem] uppercase tracking-widest font-bold"><input type="file" accept=".tsv, .csv, .txt" @change="handleFileUpload($event, 'outfits')" />Uplink</label></div></div><button @click="wipeType = 'outfits'; showWipeModal = true" class="purge-btn mt-6 text-left text-red-500 text-[0.55rem] uppercase tracking-widest font-bold">Purge</button></div>
-            <div class="card p-6 border-t-4 border-t-stone-700 flex flex-col justify-between"><div><h2 class="text-lg serif-title text-stone-100 mb-1">Olfactory</h2><p class="text-stone-500 text-[9px] mb-6 uppercase tracking-widest">Perfumes</p><div class="bg-stone-900/40 p-3 border border-stone-800 rounded"><label class="custom-file-upload border border-stone-600 text-stone-200 px-3 py-2 text-[0.55rem] uppercase tracking-widest font-bold"><input type="file" accept=".tsv, .csv, .txt" @change="handleFileUpload($event, 'perfumes')" />Uplink</label></div></div><button @click="wipeType = 'perfumes'; showWipeModal = true" class="purge-btn mt-6 text-left text-red-500 text-[0.55rem] uppercase tracking-widest font-bold">Purge</button></div>
-            <div class="card p-6 border-t-4 border-t-stone-800 flex flex-col justify-between"><div><h2 class="text-lg serif-title text-stone-100 mb-1">Codex</h2><p class="text-stone-500 text-[9px] mb-6 uppercase tracking-widest">Master Data</p><div class="bg-stone-900/40 p-3 border border-stone-800 rounded"><label class="custom-file-upload border border-stone-600 text-stone-200 px-3 py-2 text-[0.55rem] uppercase tracking-widest font-bold"><input type="file" accept=".tsv, .csv, .txt" @change="handleFileUpload($event, 'archetypes')" />Uplink</label></div></div><button @click="wipeType = 'archetypes'; showWipeModal = true" class="purge-btn mt-6 text-left text-red-500 text-[0.55rem] uppercase tracking-widest font-bold">Purge</button></div>
-            <div class="card p-6 border-t-4 border-t-stone-500 flex flex-col justify-between"><div><h2 class="text-lg serif-title text-stone-100 mb-1">Follicular</h2><p class="text-stone-500 text-[9px] mb-6 uppercase tracking-widest">Hairstyles</p><div class="bg-stone-900/40 p-3 border border-stone-800 rounded"><label class="custom-file-upload border border-stone-600 text-stone-200 px-3 py-2 text-[0.55rem] uppercase tracking-widest font-bold"><input type="file" accept=".tsv, .csv, .txt" @change="handleFileUpload($event, 'hairstyles')" />Uplink</label></div></div><button @click="wipeType = 'hairstyles'; showWipeModal = true" class="purge-btn mt-6 text-left text-red-500 text-[0.55rem] uppercase tracking-widest font-bold">Purge</button></div>
-        </div>
-        <div class="mt-12 flex flex-col items-center gap-4"><div class="text-center text-[10px] text-stone-500 uppercase tracking-widest" x-text="authStatus"></div><button x-show="canInstall" x-cloak @click="installApp()" class="border border-stone-700 text-stone-300 px-5 py-3 text-[0.6rem] uppercase tracking-[0.2em] font-bold hover:border-stone-400 hover:text-white transition-all">Install Android App</button></div>
-    </div>
+<!-- BUILDER -->
+<section x-show="currentView==='builder'" x-cloak>
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6"><div><div class="label mb-2">Composition Engine</div><h2 class="section-title">Outfit builder</h2></div><div class="flex gap-2"><button class="btn" @click="builderSelected=[]">Clear</button><button class="btn btn-primary" :disabled="builderSelected.length<2" @click="prepareOutfitSave()">Save outfit</button></div></div>
+  <div class="builder-grid grid grid-cols-[1fr_360px] gap-6">
+    <div><div class="card p-4 mb-4 grid grid-cols-1 md:grid-cols-4 gap-3"><input class="field md:col-span-2" x-model="builderFilter" placeholder="Filter available garments"><select class="field" x-model="builderSeason"><option value="ALL">Any season</option><template x-for="s in seasons"><option :value="s" x-text="s"></option></template></select><select class="field" x-model="builderCategory"><option value="ALL">Any category</option><template x-for="c in garmentCategories"><option :value="c" x-text="c"></option></template></select></div><div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"><template x-for="g in builderGarments" :key="g.id"><button class="card overflow-hidden text-left" :class="builderSelected.includes(g.id)?'ring-2 ring-stone-300':''" @click="toggleBuilderGarment(g.id)"><div class="thumb"><template x-if="g.image"><img :src="g.image"></template><template x-if="!g.image"><div class="h-full flex items-center justify-center text-3xl text-stone-700">◇</div></template></div><div class="p-3"><div class="text-xs text-white" x-text="g.name"></div><div class="text-[9px] uppercase tracking-widest text-stone-600 mt-1" x-text="`${g.category} · ${g.status}`"></div></div></button></template></div></div>
+    <aside class="card p-5 h-fit lg:sticky lg:top-4"><div class="label mb-2">Current Assembly</div><h3 class="text-2xl serif text-white mb-4" x-text="`${builderSelected.length} pieces`"></h3><div class="space-y-3 max-h-72 overflow-auto"><template x-for="g in builderSelectedGarments" :key="g.id"><div class="flex items-center gap-3 border-b border-stone-800 pb-2"><div class="w-10 h-12 bg-stone-900 overflow-hidden flex-shrink-0"><img x-show="g.image" :src="g.image" class="w-full h-full object-cover"></div><div class="min-w-0 flex-1"><div class="text-xs text-white truncate" x-text="g.name"></div><div class="text-[9px] uppercase tracking-widest text-stone-600" x-text="g.category"></div></div><button class="text-stone-600 hover:text-white" @click="toggleBuilderGarment(g.id)">×</button></div></template></div><div class="border-t border-stone-800 pt-4 mt-4 space-y-3"><div class="flex justify-between text-xs"><span class="text-stone-500">Overall</span><strong class="text-white" x-text="`${builderScore.total}/100`"></strong></div><div class="flex justify-between text-xs"><span class="text-stone-500">Formality</span><span x-text="builderScore.formality"></span></div><div class="flex justify-between text-xs"><span class="text-stone-500">Colour</span><span x-text="builderScore.color"></span></div><div class="flex justify-between text-xs"><span class="text-stone-500">Season</span><span x-text="builderScore.season"></span></div><div class="flex justify-between text-xs"><span class="text-stone-500">Availability</span><span x-text="builderScore.availability"></span></div></div><div class="mt-5"><div class="label mb-2">Suggested perfume</div><div class="text-sm text-white" x-text="builderPerfume?.name||'No matching perfume mapped'"></div><div class="text-xs text-stone-600 mt-1" x-text="builderPerfume?.mood||''"></div></div></aside>
+  </div>
+</section>
 
-    <div x-show="currentView === 'archive'" class="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-7xl mx-auto items-start pb-20">
-        <div x-show="filteredOutfits.length === 0" class="col-span-1 lg:col-span-2 text-center py-32 border border-stone-800 border-dashed rounded-sm"><p class="text-stone-400 text-sm uppercase tracking-widest mb-4">No records found for <span class="text-white font-bold" x-text="currentSeason"></span>.</p></div>
-        <template x-for="outfit in filteredOutfits" :key="outfit.id">
-            <div :id="`outfit-${outfit.id}`" class="card p-10 flex flex-col relative cursor-pointer" @click="outfit.isExpanded = !outfit.isExpanded" :class="outfit.isExpanded ? 'lg:col-span-2' : ''">
-                <div class="absolute top-8 right-8 text-stone-500 font-mono text-xl transition-transform duration-500" x-text="outfit.isExpanded ? '−' : '+'"></div>
-                <div class="flex justify-between items-start mb-6 pr-8"><div class="flex items-center gap-4"><span class="text-[0.65rem] text-stone-400 font-mono tracking-widest bg-stone-900/80 border border-stone-700 px-3 py-1.5 rounded-sm shadow-inner" x-text="outfit.id"></span><span class="text-[0.6rem] uppercase tracking-[0.2em] text-stone-300 font-bold border-l border-stone-700 pl-4" x-text="outfit.archetype"></span></div></div>
-                <div class="mb-4 pr-8"><h2 class="text-3xl serif-title text-white mb-3" x-text="outfit.name"></h2><p class="text-sm text-stone-400 font-light italic" x-text="outfit.base_description"></p></div>
-                <div x-show="outfit.isExpanded" class="mt-8">
-                    <div class="mb-10 bg-stone-900/40 p-8 border-l-4 border-stone-500 rounded-r-sm shadow-md"><span class="protocol-label !text-stone-400">Narrative</span><p class="narrative-text text-white" x-text="outfit.narrative"></p></div>
-                    <div class="pt-8 border-t border-stone-800"><div class="mb-8 flex items-center gap-4"><span class="text-[0.7rem] font-black text-white uppercase tracking-[0.3em] bg-stone-800 px-4 py-1.5 rounded-sm" x-text="currentSeason"></span><div class="h-px flex-grow bg-gradient-to-r from-stone-800 to-transparent"></div></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <div class="category-block md:col-span-2 lg:col-span-1"><span class="protocol-label">Outerwear</span><template x-for="item in getSeasonData(outfit).jacket"><div class="item-text py-1" x-text="item"></div></template></div>
-                            <div class="category-block"><span class="protocol-label">Headwear</span><div class="item-text" x-text="getSeasonData(outfit).hat"></div></div>
-                            <div class="category-block"><span class="protocol-label">Neckwear</span><div class="item-text" x-text="getSeasonData(outfit).scarf"></div></div>
-                            <div class="category-block"><span class="protocol-label">Footwear</span><template x-for="shoe in getSeasonData(outfit).footwear"><div class="item-text py-1" x-text="shoe"></div></template></div>
-                            <div class="category-block border-l-stone-400 bg-stone-900/20"><span class="protocol-label !text-stone-300">Olfactory Signature</span><div class="flex flex-col gap-4 mt-4"><template x-for="perfume in getMatchingPerfumes(outfit.archetype)" :key="perfume.name"><div class="flex flex-col"><span @click.stop="togglePerfumeOutline(outfit.id, perfume.name)" class="perfume-link flex items-center gap-3 group font-bold tracking-wide"><span class="w-1.5 h-1.5 bg-stone-500 rounded-full"></span><span x-text="perfume.name"></span></span><div x-show="openPerfumeOutline === `${outfit.id}-${perfume.name}`" class="mt-4 p-6 perfume-outline-box"><div class="flex justify-between items-end mb-4 border-b border-stone-800 pb-2"><h4 class="text-white serif-title text-xl" x-text="perfume.name"></h4><span class="text-[0.55rem] uppercase tracking-widest text-stone-400 font-bold" x-text="perfume.role"></span></div><p class="text-[0.7rem] italic text-stone-300 mb-6 leading-relaxed" x-text="perfume.mood"></p><div class="grid grid-cols-1 gap-5"><div><div class="note-header">Top</div><div class="note-item" x-text="perfume.topNotes.join(', ')"></div></div><div><div class="note-header">Mid</div><div class="note-item" x-text="perfume.middleNotes.join(', ')"></div></div><div><div class="note-header">Base</div><div class="note-item" x-text="perfume.baseNotes.join(', ')"></div></div></div></div></div></template><div x-show="getMatchingPerfumes(outfit.archetype).length === 0" class="text-[0.65rem] italic text-stone-600 mt-2">No chemical signatures mapped.</div></div></div>
-                            <div class="category-block border-l-stone-500 bg-stone-900/20"><span class="protocol-label !text-stone-300">Follicular Protocol</span><div class="flex flex-col gap-4 mt-4"><template x-for="hair in getMatchingHairstyles(outfit.archetype)" :key="hair.name"><div class="flex flex-col"><span @click.stop="toggleHairstyleOutline(outfit.id, hair.name)" class="hair-link flex items-center gap-3 group font-bold tracking-wide"><span class="w-1.5 h-1.5 bg-stone-600 rounded-full"></span><span x-text="hair.name"></span></span><div x-show="openHairstyleOutline === `${outfit.id}-${hair.name}`" class="mt-4 p-6 outline-box"><div class="flex justify-between items-end mb-4 border-b border-stone-800 pb-2"><h4 class="text-white serif-title text-xl" x-text="hair.name"></h4></div><div class="space-y-5"><div><span class="note-header">Structural Blueprint</span><div class="note-item" x-text="hair.blueprint"></div></div><div><span class="note-header">Chemical Arsenal</span><div class="note-item" x-text="hair.arsenal"></div></div></div></div></div></template><div x-show="getMatchingHairstyles(outfit.archetype).length === 0" class="text-[0.65rem] italic text-stone-600 mt-2">No follicular data mapped.</div></div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
-    </div>
+<!-- ARCHIVE -->
+<section x-show="currentView==='archive'" x-cloak>
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6"><div><div class="label mb-2">Saved Compositions</div><h2 class="section-title">Outfit archive</h2></div><div class="flex gap-2"><select class="field !w-auto" x-model="archiveSeason"><option value="ALL">All seasons</option><template x-for="s in seasons"><option :value="s" x-text="s"></option></template></select></div></div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5"><template x-for="o in filteredArchiveOutfits" :key="o.id"><article class="card p-5 md:p-6"><div class="flex justify-between gap-4"><div><div class="flex flex-wrap gap-2 mb-3"><span class="pill" x-text="o.archetype||'UNMAPPED'"></span><span class="pill" x-text="outfitSeason(o)"></span><span class="pill" x-show="o.garmentIds?.length" x-text="`${o.garmentIds.length} linked`"></span></div><h3 class="text-2xl serif text-white" x-text="o.name"></h3><p class="text-sm text-stone-500 italic mt-2" x-text="o.base_description||o.description||''"></p></div><div class="text-xs font-mono text-stone-600" x-text="o.id"></div></div><div x-show="o.garmentIds?.length" class="grid grid-cols-4 md:grid-cols-6 gap-2 mt-5"><template x-for="g in outfitGarments(o)" :key="g.id"><div class="thumb"><template x-if="g.image"><img :src="g.image"></template><template x-if="!g.image"><div class="h-full flex items-center justify-center text-stone-700">◇</div></template></div></template></div><div x-show="!o.garmentIds?.length" class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs"><div class="border-l border-stone-700 pl-3"><div class="label">Outerwear</div><div class="mt-1 text-stone-300" x-text="legacyItems(o,'jacket')"></div></div><div class="border-l border-stone-700 pl-3"><div class="label">Footwear</div><div class="mt-1 text-stone-300" x-text="legacyItems(o,'footwear')"></div></div><div class="border-l border-stone-700 pl-3"><div class="label">Hat</div><div class="mt-1 text-stone-300" x-text="legacyItems(o,'hat')"></div></div><div class="border-l border-stone-700 pl-3"><div class="label">Scarf</div><div class="mt-1 text-stone-300" x-text="legacyItems(o,'scarf')"></div></div></div><div class="flex flex-wrap gap-2 mt-5 pt-4 border-t border-stone-800"><button class="btn" @click="markWorn(o)">Wore today</button><button class="btn" @click="planOutfitQuick(o)">Plan</button><button class="btn" x-show="o.garmentIds?.length" @click="editOutfitInBuilder(o)">Edit in builder</button><span class="pill ml-auto" x-text="`${outfitWearCount(o.id)} wears`"></span></div></article></template></div>
+</section>
 
-    <div x-show="currentView === 'perfume'" class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto items-start pb-20">
-        <template x-for="p in filteredPerfumes" :key="p.name"><div class="card p-8 flex flex-col"><div class="flex justify-between items-start mb-6"><span class="text-[0.6rem] uppercase tracking-widest text-stone-400 font-bold" x-text="p.archetype"></span><span class="text-[0.6rem] text-stone-500 font-mono tracking-tighter" x-text="p.role"></span></div><h2 class="text-2xl serif-title text-white mb-1" x-text="p.name"></h2><p class="text-[0.65rem] uppercase tracking-widest text-stone-400 mb-6 italic" x-text="p.mood"></p><div class="space-y-6"><div class="category-block !border-l-stone-500"><span class="protocol-label !text-[0.55rem] !text-stone-300">Top Notes</span><div class="flex flex-wrap gap-2 text-white text-xs"><template x-for="n in p.topNotes"><span x-text="n"></span></template></div></div><div class="category-block !border-l-stone-600"><span class="protocol-label !text-[0.55rem] !text-stone-400">Middle Notes</span><div class="flex flex-wrap gap-2 text-stone-200 text-xs"><template x-for="n in p.middleNotes"><span x-text="n"></span></template></div></div><div class="category-block !border-l-stone-700"><span class="protocol-label !text-[0.55rem] !text-stone-500">Base Notes</span><div class="flex flex-wrap gap-2 text-stone-300 text-xs"><template x-for="n in p.baseNotes"><span x-text="n"></span></template></div></div></div></div></template>
-    </div>
+<!-- PLANNER -->
+<section x-show="currentView==='planner'" x-cloak>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card p-6"><div class="label mb-2">Calendar Protocol</div><h2 class="section-title mb-6">Plan an outfit</h2><div class="space-y-4"><div><span class="label">Date</span><input type="date" class="field mt-2" x-model="planDraft.date"></div><div><span class="label">Outfit</span><select class="field mt-2" x-model="planDraft.outfitId"><option value="">Select outfit</option><template x-for="o in outfits"><option :value="o.id" x-text="o.name"></option></template></select></div><div><span class="label">Note / occasion</span><input class="field mt-2" x-model="planDraft.note" placeholder="Office / dinner / rain expected"></div><button class="btn btn-primary w-full" @click="savePlan()">Add to planner</button></div></div>
+    <div class="card p-6"><div class="label mb-2">Schedule</div><h2 class="section-title mb-6">Upcoming</h2><div class="space-y-4"><template x-for="p in upcomingPlans" :key="p.id"><div class="border-b border-stone-800 pb-4 flex justify-between gap-4"><div><div class="text-sm text-white" x-text="getOutfitName(p.outfitId)"></div><div class="text-xs text-stone-600 mt-1" x-text="p.note||''"></div><button class="text-[10px] uppercase tracking-widest text-red-500 mt-2" @click="deleteRecord('plans',p.id)">Remove</button></div><div class="text-sm text-stone-400 whitespace-nowrap" x-text="prettyDate(p.date)"></div></div></template><div x-show="!upcomingPlans.length" class="text-stone-600 text-sm">No upcoming plans.</div></div></div>
+  </div>
+  <div class="card p-6 mt-6"><div class="flex justify-between items-center mb-5"><div><div class="label mb-2">Wear Log</div><h3 class="text-xl serif text-white">History</h3></div></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="text-stone-600 uppercase tracking-widest"><tr><th class="py-2">Date</th><th>Outfit</th><th>Occasion</th><th>Rating</th><th></th></tr></thead><tbody><template x-for="w in recentWears" :key="w.id"><tr class="border-t border-stone-800"><td class="py-3" x-text="prettyDate(w.date)"></td><td class="text-white" x-text="getOutfitName(w.outfitId)"></td><td x-text="w.occasion||'—'"></td><td x-text="w.rating?`${w.rating}/5`:'—'"></td><td><button class="text-red-500" @click="deleteRecord('wears',w.id)">×</button></td></tr></template></tbody></table></div></div>
+</section>
 
-    <div x-show="currentView === 'index'" x-cloak class="max-w-7xl mx-auto pb-20">
-        <div class="flex justify-center gap-12 mb-16 border-b border-stone-800 pb-6 overflow-x-auto"><template x-for="cat in ['clothes', 'notes', 'archetypes', 'hairstyles']"><button @click="indexCategory = cat" :class="indexCategory === cat ? 'filter-active text-white' : 'filter-inactive text-stone-500'" class="filter-btn text-[0.7rem] uppercase tracking-[0.3em] font-bold" x-text="cat"></button></template></div>
-        <div x-show="indexCategory === 'clothes'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12"><template x-for="category in ['Jackets', 'Shoes', 'Hats', 'Scarves']"><div class="flex flex-col gap-6"><h3 class="text-xl serif-title text-white border-b border-stone-700 pb-2 mb-4" x-text="category"></h3><template x-if="category === 'Jackets'"><template x-for="group in jacketGroups"><div x-show="group.items.length > 0"><div class="index-subgroup-label" x-text="group.label"></div><template x-for="item in group.items"><div class="flex flex-col mb-1"><div class="index-item flex justify-between items-center py-2 px-3 border-b border-stone-800/50 rounded-sm"><span class="text-sm font-light text-stone-300" x-text="item.name"></span><span @click="toggleItemDetails(item.name)" class="count-badge text-[0.65rem] font-bold text-stone-400 bg-stone-900 border border-stone-800 px-2.5 py-0.5 rounded-full" x-text="item.count"></span></div><div x-show="openItemDetails === item.name" class="bg-stone-900/40 p-4 flex flex-col gap-3 border-l-2 border-stone-600 ml-3 mt-2 rounded-r-sm"><template x-for="oid in item.outfits"><span @click="jumpToOutfit(oid)" class="outfit-link flex items-center gap-2" x-text="`↳ ${oid}: ${getOutfitName(oid)}`"></span></template></div></div></template></div></template></template><template x-if="category !== 'Jackets'"><template x-for="item in getSortedIndex(category.toLowerCase())"><div class="flex flex-col mb-1"><div class="index-item flex justify-between items-center py-2 px-3 border-b border-stone-800/50 rounded-sm"><span class="text-sm font-light text-stone-300" x-text="item.name"></span><span @click="toggleItemDetails(item.name)" class="count-badge text-[0.65rem] font-bold text-stone-400 bg-stone-900 border border-stone-800 px-2.5 py-0.5 rounded-full" x-text="item.count"></span></div><div x-show="openItemDetails === item.name" class="bg-stone-900/40 p-4 flex flex-col gap-3 border-l-2 border-stone-600 ml-3 mt-2 rounded-r-sm"><template x-for="oid in item.outfits"><span @click="jumpToOutfit(oid)" class="outfit-link flex items-center gap-2" x-text="`↳ ${oid}: ${getOutfitName(oid)}`"></span></template></div></div></template></template></div></template></div>
-        <div x-show="indexCategory === 'notes'"><div class="flex justify-end gap-6 mb-8 bg-stone-900/30 p-2 rounded-sm w-fit ml-auto border border-stone-800"><button @click="noteDisplay = 'list'" :class="noteDisplay === 'list' ? 'text-white bg-stone-800' : 'text-stone-500'" class="text-[0.6rem] uppercase tracking-widest font-bold px-4 py-1.5 rounded-sm">List</button><button @click="noteDisplay = 'heatmap'" :class="noteDisplay === 'heatmap' ? 'text-white bg-stone-800' : 'text-stone-500'" class="text-[0.6rem] uppercase tracking-widest font-bold px-4 py-1.5 rounded-sm">Heatmap</button></div><div x-show="noteDisplay === 'list'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12"><template x-for="note in getPerfumeNoteIndex()"><div class="flex flex-col mb-1"><div class="index-item flex justify-between items-center py-2 px-3 border-b border-stone-800/50 rounded-sm"><span class="text-sm font-light text-stone-300" x-text="note.name"></span><span @click="toggleNoteDetails(note.name)" class="count-badge text-[0.65rem] font-bold text-stone-400 bg-stone-900 border border-stone-800 px-2.5 py-0.5 rounded-full" x-text="note.count"></span></div><div x-show="openNoteDetails === note.name" class="bg-stone-900/40 p-5 border-l-2 border-stone-600 ml-3 mt-2 rounded-r-sm space-y-5"><template x-for="pname in note.perfumes"><div class="flex flex-col"><span @click="toggleNotePerfumeOutline(note.name, pname)" class="note-perfume-link flex items-center gap-3 group/link font-bold"><span class="w-1.5 h-1.5 bg-stone-600 rounded-full"></span><span x-text="pname"></span></span><div x-show="openNotePerfumeOutline === `${note.name}-${pname}`" class="mt-4 p-6 perfume-outline-box"><div class="flex justify-between items-end mb-4 border-b border-stone-800 pb-2"><h4 class="text-white serif-title text-lg" x-text="pname"></h4><span class="text-[0.55rem] uppercase tracking-widest text-stone-400 font-bold" x-text="getPerfumeByName(pname)?.role"></span></div><div class="grid grid-cols-1 gap-5 pt-2"><div><div class="note-header">Top</div><div class="note-item" x-text="getPerfumeByName(pname)?.topNotes.join(', ')"></div></div><div><div class="note-header">Mid</div><div class="note-item" x-text="getPerfumeByName(pname)?.middleNotes.join(', ')"></div></div><div><div class="note-header">Base</div><div class="note-item" x-text="getPerfumeByName(pname)?.baseNotes.join(', ')"></div></div></div></div></div></template></div></div></template></div><div x-show="noteDisplay === 'heatmap'" class="heatmap-container bg-stone-900/20 p-16 card border-stone-800 rounded-sm shadow-inner"><template x-for="note in getPerfumeNoteIndex()"><div class="flex flex-col items-center"><span @click="toggleNoteDetails(note.name)" class="heatmap-tag font-light text-stone-400" :style="`font-size: ${getNoteFontSize(note.count)}rem; opacity: ${0.5 + (note.count / maxNoteCount) * 0.5}`" x-text="note.name"></span><div x-show="openNoteDetails === note.name" class="mt-4 p-8 perfume-outline-box fixed z-[50] left-1/2 -translate-x-1/2 top-1/4 max-w-md w-full shadow-2xl"><div class="flex justify-between items-center border-b border-stone-700 pb-4 mb-6"><h3 class="text-sm uppercase tracking-widest text-white font-bold" x-text="`Contains: ${note.name}`"></h3><button @click="openNoteDetails = null" class="text-[0.65rem] text-stone-500 hover:text-white transition-colors uppercase tracking-widest">Close ×</button></div><div class="space-y-4"><template x-for="pname in note.perfumes"><div @click="openPerfumeFromHeatmap(pname)" class="text-sm text-stone-300 cursor-pointer hover:text-white hover:translate-x-2 transition-all duration-300 flex items-center gap-3"><span class="w-1 h-1 bg-stone-500 rounded-full"></span><span x-text="pname"></span></div></template></div></div></div></template></div></div>
-        <div x-show="indexCategory === 'archetypes'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><template x-for="arch in sortedArchetypes" :key="arch.name"><div class="card p-8 border-t border-t-stone-600"><span class="text-[0.6rem] font-mono text-stone-500 mb-3 block" x-text="`SEQ_${String(arch.number || '').padStart(3, '0')}`"></span><h4 class="text-2xl serif-title text-white mb-6" x-text="arch.name"></h4><div class="space-y-6"><div><span class="protocol-label !text-stone-400">Core Philosophy</span><p class="text-stone-300 text-[0.75rem] leading-relaxed font-medium" x-text="arch.philosophy"></p></div><div><span class="protocol-label !text-stone-400">Character Profile</span><p class="text-stone-400 text-[0.75rem] italic leading-relaxed" x-text="arch.profile"></p></div></div></div></template></div>
-        <div x-show="indexCategory === 'hairstyles'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10"><template x-for="arch in availableArchetypes"><div x-show="getMatchingHairstyles(arch).length > 0" class="flex flex-col gap-5"><h3 class="text-sm uppercase tracking-[0.2em] text-white font-bold border-b border-stone-700 pb-3" x-text="arch"></h3><template x-for="hair in getMatchingHairstyles(arch)"><div class="group py-3 px-4 bg-stone-900/30 rounded-sm border border-stone-800/50"><span class="text-white text-xs font-bold uppercase tracking-widest block mb-2" x-text="hair.name"></span><p class="text-stone-400 text-[11px] leading-relaxed italic" x-text="hair.blueprint"></p></div></template></div></template></div>
-    </div>
+<!-- OLFACTORY -->
+<section x-show="currentView==='olfactory'" x-cloak>
+  <div class="flex justify-between items-end gap-4 mb-6"><div><div class="label mb-2">Chemical Signatures</div><h2 class="section-title">Olfactory archive</h2></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"><template x-for="p in filteredPerfumes" :key="p.name"><article class="card p-6"><div class="flex justify-between gap-3 mb-4"><span class="pill" x-text="p.archetype||'UNMAPPED'"></span><span class="text-[10px] uppercase tracking-widest text-stone-600" x-text="p.role"></span></div><h3 class="text-2xl serif text-white" x-text="p.name"></h3><p class="text-xs text-stone-500 italic mt-2" x-text="p.mood"></p><div class="space-y-4 mt-6"><div><div class="label">Top</div><div class="text-xs text-stone-300 mt-1" x-text="(p.topNotes||[]).join(', ')"></div></div><div><div class="label">Middle</div><div class="text-xs text-stone-300 mt-1" x-text="(p.middleNotes||[]).join(', ')"></div></div><div><div class="label">Base</div><div class="text-xs text-stone-300 mt-1" x-text="(p.baseNotes||[]).join(', ')"></div></div></div></article></template></div>
+</section>
 
-    <script>
-        let audioCtx = null;
-        function playTactileClick() {
-            const AudioCtor = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtor) return;
-            if (!audioCtx) audioCtx = new AudioCtor();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.03);
-            gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.03);
-        }
-        document.addEventListener('click', (e) => { const interactiveSelector = 'button, .card, .index-item, .count-badge, .outfit-link, .perfume-link, .note-perfume-link, .hair-link, .heatmap-tag, .custom-file-upload, .purge-btn'; if (e.target.closest(interactiveSelector)) playTactileClick(); }, true);
-    </script>
+<!-- INTELLIGENCE -->
+<section x-show="currentView==='intelligence'" x-cloak>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 card p-6 md:p-8"><div class="label mb-2">Analysis</div><h2 class="section-title mb-6">Wardrobe intelligence</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><template x-for="ins in wardrobeInsights" :key="ins.title"><div class="border border-stone-800 p-4"><div class="label" x-text="ins.type"></div><div class="text-white text-sm mt-2" x-text="ins.title"></div><div class="text-xs text-stone-600 mt-2 leading-relaxed" x-text="ins.text"></div></div></template></div></div>
+    <div class="card p-6"><div class="label mb-2">Underused</div><h3 class="text-xl serif text-white mb-5">Lowest rotation</h3><div class="space-y-3"><template x-for="g in leastWornGarments.slice(0,8)" :key="g.id"><div class="flex justify-between border-b border-stone-800 pb-2"><span class="text-xs text-stone-300" x-text="g.name"></span><span class="text-xs text-stone-600" x-text="`${garmentWearCount(g.id)} wears`"></span></div></template></div></div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="card p-6"><div class="label mb-2">Acquisition Queue</div><h3 class="text-xl serif text-white mb-5">Wishlist</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4"><input class="field" x-model="wishDraft.name" placeholder="Dark brown loafers"><select class="field" x-model="wishDraft.category"><template x-for="c in garmentCategories"><option :value="c" x-text="c"></option></template></select><button class="btn btn-primary" @click="addWishlist()">Add</button></div><div class="space-y-3"><template x-for="w in wishlist" :key="w.id"><div class="flex justify-between gap-3 border-b border-stone-800 pb-3"><div><div class="text-sm text-white" x-text="w.name"></div><div class="text-[10px] text-stone-600 uppercase tracking-widest" x-text="`${w.category} · gap score ${wishlistGapScore(w)}`"></div></div><button class="text-red-500" @click="deleteRecord('wishlist',w.id)">×</button></div></template></div></div>
+    <div class="card p-6"><div class="label mb-2">Capsule / Packing</div><h3 class="text-xl serif text-white mb-5">Travel capsule</h3><p class="text-xs text-stone-600 mb-4">Select available garments in the builder, then estimate how many functional combinations the capsule can produce.</p><div class="grid grid-cols-2 gap-4"><div class="border border-stone-800 p-4"><div class="label">Selected pieces</div><div class="metric mt-2" x-text="builderSelected.length"></div></div><div class="border border-stone-800 p-4"><div class="label">Estimated looks</div><div class="metric mt-2" x-text="capsuleCombinations"></div></div></div><button class="btn w-full mt-4" @click="currentView='builder'">Build capsule</button></div>
+  </div>
+</section>
 
-    <script>
-        function wardrobeApp() {
-            return {
-                currentSeason: 'SPRING', currentArchetype: 'ALL', currentView: 'database', indexCategory: 'clothes', noteDisplay: 'list', showWipeModal: false, wipeType: 'outfits', isPurging: false, isAdding: false, isInitialised: false, authStatus: 'Connecting...', uploadStatus: '', uploadError: '', outfits: [], perfumes: [], archetypes: [], hairstyles: [], user: null, openItemDetails: null, openNoteDetails: null, openPerfumeOutline: null, openNotePerfumeOutline: null, openHairstyleOutline: null, showFlap: false, explainedArchetype: '', canInstall: false, deferredInstallPrompt: null, archetypePressTimer: null,
-                async initData() {
-                    const initialise = async () => {
-                        if (!window.ArchiveStorage || this.isInitialised) return;
-                        try { this.user = await window.ArchiveStorage.init(); this.isInitialised = true; this.authStatus = window.ArchiveStorage.mode === 'cloud' ? 'Cloud matrix established.' : 'Local archive ready · stored on this device.'; this.syncFromCloud(); }
-                        catch (e) { console.error(e); this.authStatus = 'Storage connection failure.'; }
-                    };
-                    window.addEventListener('archive-storage-ready', initialise, { once: true }); initialise();
-                    window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); this.deferredInstallPrompt = event; this.canInstall = true; });
-                    window.addEventListener('appinstalled', () => { this.canInstall = false; this.deferredInstallPrompt = null; });
-                },
-                syncFromCloud() {
-                    if (!this.user || !window.ArchiveStorage) return;
-                    const bind = (type) => window.ArchiveStorage.subscribe(type, (items) => { this[type] = type === 'outfits' ? items.map(d => ({ ...d, isExpanded: false })) : items; if (type === 'outfits' && this.outfits.length > 0 && this.currentView === 'database' && !this.isPurging && !this.isAdding) this.currentView = 'archive'; });
-                    ['outfits', 'perfumes', 'archetypes', 'hairstyles'].forEach(bind);
-                },
-                handleFileUpload(event, type) { const file = event.target.files[0]; if (!file) return; this.isAdding = true; const reader = new FileReader(); reader.onload = async (e) => { if (type === 'outfits') await this.parseOutfitTSV(e.target.result); else if (type === 'perfumes') await this.parsePerfumeTSV(e.target.result); else if (type === 'archetypes') await this.parseArchetypeTSV(e.target.result); else await this.parseHairstyleTSV(e.target.result); event.target.value = ''; }; reader.readAsText(file); },
-                async parseOutfitTSV(t) { try { const r=t.split(/\r?\n/).filter(l=>l.trim()!==''); const d=r[0].includes('\t')?'\t':(r[0].includes(';')?';':','); const h=r[0].split(d).map(s=>s.trim().toUpperCase()); const m={}; ['ID','TAG','NAME','DESCRIPTION','NARRATIVE','ARCHETYPE','SEASON','JACKET','HAT','SCARF','SHOES'].forEach(k=>{m[k]=h.findIndex(s=>s.includes(k));}); const p=[]; for(let i=1;i<r.length;i++){const c=r[i].split(d); const g=(k)=>(m[k]!==-1&&c[m[k]])?c[m[k]].trim():""; const rawId=g('ID'); if(!rawId)continue; const tagList=g('TAG').split(/[,\/]+/).map(s=>s.trim()).filter(Boolean); const primaryTag=tagList.length>0?tagList[0].toUpperCase():''; const id=primaryTag?`${rawId}-${primaryTag}`:rawId; const o={id,base_id:rawId,archetype:g('ARCHETYPE').toUpperCase(),name:g('NAME'),tags:tagList,base_description:g('DESCRIPTION'),narrative:g('NARRATIVE'),seasons:{}}; const rs=g('SEASON'); if(rs){const sk=rs.split(';').map(s=>s.trim().toUpperCase()); const jk=g('JACKET').split(';'); const ht=g('HAT').split(';'); const sc=g('SCARF').split(';'); const sh=g('SHOES').split(';'); sk.forEach((k,idx)=>{if(!k)return;o.seasons[k]={jacket:(jk[idx]||"N/A").split(/[/\n]+/).map(x=>x.trim()).filter(Boolean),hat:(ht[idx]||"N/A").trim(),scarf:(sc[idx]||"N/A").trim(),footwear:(sh[idx]||"N/A").split(/[/\n]+/).map(x=>x.trim()).filter(Boolean)};});} p.push(o);} await this.saveToCloud(p,'outfits'); setTimeout(()=>{this.isAdding=false;this.currentView='database';},550);}catch(e){console.error(e);this.isAdding=false;} },
-                async parsePerfumeTSV(t) { try { const r=t.split(/\r?\n/).filter(l=>l.trim()!==''); const d=r[0].includes('\t')?'\t':','; const h=r[0].split(d).map(s=>s.trim().toUpperCase()); const m={}; ['NAME','ROLE','MOOD','SEASON','TOP NOTES','BASE NOTES','ARCHETYPE'].forEach(k=>{m[k]=h.findIndex(s=>s.includes(k));}); m['MIDDLE NOTES']=h.findIndex(s=>s.includes('MIDDLE NOTES')||s.includes('MIDDLES NOTES')); const p=[]; for(let i=1;i<r.length;i++){const c=r[i].split(d);const g=(k)=>(m[k]!==-1&&c[m[k]])?c[m[k]].trim():"";const n=g('NAME');if(!n)continue;const sp=(k)=>g(k).split(';').map(s=>s.trim()).filter(Boolean);p.push({name:n,role:g('ROLE'),mood:g('MOOD'),seasons:sp('SEASON').map(s=>s.toUpperCase()),topNotes:sp('TOP NOTES'),middleNotes:sp('MIDDLE NOTES'),baseNotes:sp('BASE NOTES'),archetype:g('ARCHETYPE').toUpperCase()});} await this.saveToCloud(p,'perfumes');setTimeout(()=>{this.isAdding=false;this.currentView='database';},550);}catch(e){console.error(e);this.isAdding=false;} },
-                async parseArchetypeTSV(t) { try { const r=t.split(/\r?\n/).filter(l=>l.trim()!==''); const d=r[0].includes('\t')?'\t':','; const h=r[0].split(d).map(s=>s.trim().toUpperCase()); const m={}; ['NUMBER','NAME','CORE PHILOSOPHY','CHARACTER PROFILE'].forEach(k=>{m[k]=h.findIndex(s=>s.includes(k));}); const p=[]; for(let i=1;i<r.length;i++){const c=r[i].split(d);const g=(k)=>(m[k]!==-1&&c[m[k]])?c[m[k]].trim():"";const n=g('NAME');if(!n)continue;p.push({number:g('NUMBER'),name:n.toUpperCase(),philosophy:g('CORE PHILOSOPHY'),profile:g('CHARACTER PROFILE')});} await this.saveToCloud(p,'archetypes');setTimeout(()=>{this.isAdding=false;this.currentView='database';},550);}catch(e){console.error(e);this.isAdding=false;} },
-                async parseHairstyleTSV(t) { try { const r=t.split(/\r?\n/).filter(l=>l.trim()!==''); const d=r[0].includes('\t')?'\t':','; const h=r[0].split(d).map(s=>s.trim().toUpperCase()); const m={}; ['ARCHETYPE','HAIRSTYLE NAME','STRUCTURAL BLUEPRINT','CHEMICAL ARSENAL'].forEach(k=>{m[k]=h.findIndex(s=>s.includes(k));}); const p=[]; for(let i=1;i<r.length;i++){const c=r[i].split(d);const g=(k)=>(m[k]!==-1&&c[m[k]])?c[m[k]].trim():"";const n=g('HAIRSTYLE NAME');if(!n)continue;p.push({archetype:g('ARCHETYPE').toUpperCase(),name:n,blueprint:g('STRUCTURAL BLUEPRINT'),arsenal:g('CHEMICAL ARSENAL')});} await this.saveToCloud(p,'hairstyles');setTimeout(()=>{this.isAdding=false;this.currentView='database';},550);}catch(e){console.error(e);this.isAdding=false;} },
-                async saveToCloud(da, cn) { await window.ArchiveStorage.saveItems(cn, da); },
-                async executeWipe() { this.showWipeModal=false;this.isPurging=true;try{await window.ArchiveStorage.wipe(this.wipeType);}finally{setTimeout(()=>{this[this.wipeType]=[];this.isPurging=false;this.currentView='database';},550);} },
-                get availableArchetypes() { const s=new Set();this.outfits.forEach(o=>{if(o.archetype)o.archetype.split(';').forEach(a=>s.add(a.trim().toUpperCase()));});this.perfumes.forEach(p=>{if(p.archetype)p.archetype.split(';').forEach(a=>s.add(a.trim().toUpperCase()));});this.archetypes.forEach(a=>s.add(a.name.toUpperCase()));return Array.from(s).filter(Boolean).sort(); },
-                get filteredOutfits() { let l=this.outfits;if(this.currentArchetype!=='ALL')l=l.filter(o=>o.archetype&&o.archetype.split(';').map(a=>a.trim().toUpperCase()).includes(this.currentArchetype));l=l.filter(o=>o.seasons&&o.seasons[this.currentSeason.toUpperCase()]);return l.sort((a,b)=>((parseInt(a.id.replace(/\D/g,''))||0)-(parseInt(b.id.replace(/\D/g,''))||0))||a.id.localeCompare(b.id)); },
-                get filteredPerfumes() { let l=this.perfumes;if(this.currentArchetype!=='ALL')l=l.filter(p=>p.archetype&&p.archetype.split(';').map(a=>a.trim().toUpperCase()).includes(this.currentArchetype));return l.filter(p=>p.seasons&&p.seasons.includes(this.currentSeason.toUpperCase())).sort((a,b)=>a.name.localeCompare(b.name)); },
-                getMatchingPerfumes(arch){const oa=arch.split(';').map(a=>a.trim().toUpperCase());return this.perfumes.filter(p=>{const pa=(p.archetype||'').split(';').map(a=>a.trim().toUpperCase());return oa.some(x=>pa.includes(x))&&p.seasons.includes(this.currentSeason.toUpperCase());}).sort((a,b)=>a.name.localeCompare(b.name));},
-                getMatchingHairstyles(arch){const oa=arch.split(';').map(a=>a.trim().toUpperCase());return this.hairstyles.filter(h=>{const ha=(h.archetype||'').split(';').map(a=>a.trim().toUpperCase());return oa.some(x=>ha.includes(x));}).sort((a,b)=>a.name.localeCompare(b.name));},
-                getArchetypeProfile(n){return this.archetypes.find(a=>a.name===n.toUpperCase());}, toggleFlap(a){this.showFlap=(this.showFlap&&this.explainedArchetype===a)?false:true;this.explainedArchetype=a;},
-                getSeasonData(o){const f={jacket:["N/A"],hat:"N/A",scarf:"N/A",footwear:["N/A"]};return(o.seasons&&o.seasons[this.currentSeason.toUpperCase()])?o.seasons[this.currentSeason.toUpperCase()]:f;},
-                toggleItemDetails(n){this.openItemDetails=this.openItemDetails===n?null:n;}, toggleNoteDetails(n){this.openNoteDetails=this.openNoteDetails===n?null:n;}, toggleNotePerfumeOutline(n,p){const k=`${n}-${p}`;this.openNotePerfumeOutline=this.openNotePerfumeOutline===k?null:k;}, togglePerfumeOutline(id,n){const k=`${id}-${n}`;this.openPerfumeOutline=this.openPerfumeOutline===k?null:k;}, toggleHairstyleOutline(id,n){const k=`${id}-${n}`;this.openHairstyleOutline=this.openHairstyleOutline===k?null:k;},
-                getOutfitName(id){return this.outfits.find(o=>o.id===id)?.name||"Unknown Protocol";}, getPerfumeByName(n){return this.perfumes.find(p=>p.name===n);},
-                jumpToOutfit(id){const o=this.outfits.find(x=>x.id===id);if(!o)return;o.isExpanded=true;const vs=Object.keys(o.seasons);if(vs.length>0&&!vs.includes(this.currentSeason.toUpperCase()))this.currentSeason=vs[0];this.currentArchetype='ALL';this.currentView='archive';setTimeout(()=>{const el=document.getElementById(`outfit-${id}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);},
-                openPerfumeFromHeatmap(p){this.currentView='perfume';this.openNoteDetails=null;},
-                getSortedIndex(cat){const m={};this.outfits.forEach(o=>{Object.keys(o.seasons||{}).forEach(s=>{const d=o.seasons[s];let i=[];if(cat==='jackets')i=d.jacket;else if(cat==='shoes')i=d.footwear;else if(cat==='hats')i=[d.hat];else if(cat==='scarves')i=[d.scarf];i.forEach(x=>{if(!x||x==='N/A'||x.toUpperCase().includes('NO HAT')||x.toUpperCase().includes('NO SCARF'))return;const c=x.split('(')[0].trim();if(!m[c])m[c]=new Set();m[c].add(o.id);});});});return Object.keys(m).map(n=>({name:n,count:m[n].size,outfits:Array.from(m[n]).sort((a,b)=>((parseInt(a.replace(/\D/g,''))||0)-(parseInt(b.replace(/\D/g,''))||0))||a.localeCompare(b))})).sort((a,b)=>b.count-a.count);},
-                getPerfumeNoteIndex(){const m={};this.perfumes.forEach(p=>{const a=[...(p.topNotes||[]),...(p.middleNotes||[]),...(p.baseNotes||[])];a.forEach(n=>{const c=n.trim();if(!c)return;if(!m[c])m[c]=new Set();m[c].add(p.name);});});return Object.keys(m).map(n=>({name:n,count:m[n].size,perfumes:Array.from(m[n]).sort()})).sort((a,b)=>b.count-a.count);},
-                get maxNoteCount(){const c=this.getPerfumeNoteIndex().map(n=>n.count);return Math.max(...c,1);}, getNoteFontSize(c){const min=.65,max=2.5;return min+(c/this.maxNoteCount)*(max-min);}, get sortedArchetypes(){return[...this.archetypes].sort((a,b)=>(parseInt(a.number)||0)-(parseInt(b.number)||0));},
-                startArchetypePress(a){this.endArchetypePress();this.archetypePressTimer=setTimeout(()=>{this.toggleFlap(a);this.archetypePressTimer=null;},550);}, endArchetypePress(){if(this.archetypePressTimer){clearTimeout(this.archetypePressTimer);this.archetypePressTimer=null;}},
-                async installApp(){if(!this.deferredInstallPrompt)return;this.deferredInstallPrompt.prompt();await this.deferredInstallPrompt.userChoice;this.deferredInstallPrompt=null;this.canInstall=false;},
-                get jacketGroups(){const a=this.getSortedIndex('jackets');return[{label:'Winter Jackets (Wjacket)',items:a.filter(j=>j.name.startsWith('Wjacket'))},{label:'Summer Jackets (Sjacket)',items:a.filter(j=>j.name.startsWith('Sjacket'))},{label:'Spring & Autumn Jackets (Ajacket)',items:a.filter(j=>j.name.startsWith('Ajacket'))},{label:'Uncategorized',items:a.filter(j=>!j.name.startsWith('Wjacket')&&!j.name.startsWith('Sjacket')&&!j.name.startsWith('Ajacket'))}];}
-            }
-        }
-    </script>
-    <script>if ('serviceWorker' in navigator && location.protocol === 'https:') { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn)); }</script>
+<!-- DATABASE -->
+<section x-show="currentView==='database'" x-cloak>
+  <div class="mb-6"><div class="label mb-2">Data Matrix</div><h2 class="section-title">Import / export / maintenance</h2></div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <template x-for="d in databaseCards" :key="d.type"><div class="card p-5"><div class="label" x-text="d.label"></div><div class="text-2xl serif text-white mt-2" x-text="collectionCount(d.type)"></div><div class="flex flex-wrap gap-2 mt-5"><label class="btn cursor-pointer" x-show="d.importable"><input type="file" accept=".tsv,.csv,.txt,.json" @change="handleFileUpload($event,d.type)">Import</label><button class="btn" @click="exportCollection(d.type)">Export</button><button class="btn btn-danger" @click="wipeType=d.type;showWipeModal=true">Purge</button></div></div></template>
+  </div>
+  <div class="card p-6 mt-6"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div><div class="label">Complete Backup</div><div class="text-sm text-stone-400 mt-2">Export every collection as one JSON file. Useful before clearing browser data or moving to another phone.</div></div><div class="flex gap-2"><button class="btn" @click="exportAll()">Export all</button><label class="btn cursor-pointer"><input type="file" accept="application/json,.json" @change="importAll($event)">Restore backup</label><button x-show="canInstall" class="btn btn-primary" @click="installApp()">Install Android app</button></div></div></div>
+</section>
+</main>
+
+<!-- PURGE MODAL -->
+<div x-show="showWipeModal" x-cloak class="fixed inset-0 z-[130] modal-bg flex items-center justify-center p-4"><div class="card max-w-md w-full p-7 border-t-4 border-t-red-700"><div class="label text-red-500 mb-2">Destructive Action</div><h2 class="text-2xl serif text-white">Purge collection?</h2><p class="text-sm text-stone-500 mt-3" x-text="`This permanently clears ${wipeType} from the active storage.`"></p><div class="flex gap-3 mt-6"><button class="btn btn-danger flex-1" @click="executeWipe()">Purge</button><button class="btn flex-1" @click="showWipeModal=false">Cancel</button></div></div></div>
+
+<script src="./app.js"></script>
+<script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));</script>
 </body>
 </html>
