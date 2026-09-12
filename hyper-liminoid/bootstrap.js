@@ -1,9 +1,15 @@
+const engineStatus = document.getElementById('engine-status');
+
 document.getElementById('start-btn').addEventListener('click', async () => {
     initAudio();
     if (audioCtx && audioCtx.state === 'suspended') {
         try { await audioCtx.resume(); } catch (_) {}
     }
+
     isRunning = true;
+    document.body.classList.add('running');
+    if (engineStatus) engineStatus.lastChild.textContent = ' Engine active';
+
     const overlay = document.getElementById('start-overlay');
     overlay.style.opacity = 0;
     overlay.style.pointerEvents = 'none';
