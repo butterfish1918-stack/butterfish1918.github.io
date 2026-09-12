@@ -1,0 +1,14 @@
+{
+  "name": "Orion GEN-SYS MK LXI",
+  "short_name": "Orion GEN-SYS",
+  "description": "Generative retro synthesizer and 128-step performance sequencer.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05060a",
+  "theme_color": "#05060a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
