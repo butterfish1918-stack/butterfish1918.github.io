@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#101411" />
+  <meta name="theme-color" content="#0b100d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="A playable systems prototype about survival, imperfect information and bureaucratic triage." />
-  <title>The Winter Registry — Prototype</title>
+  <title>The Winter Registry — Prototype 0.2</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./overhaul.css" />
 </head>
 <body>
   <div id="grain" aria-hidden="true"></div>
@@ -20,15 +21,25 @@
       <div class="title-card panel-heavy">
         <div class="stamp">MUNICIPAL SURVIVAL DIRECTORATE · FILE 7-Б</div>
         <h1>THE WINTER<br><span>REGISTRY</span></h1>
-        <p class="subtitle">An administrative survival prototype</p>
-        <p class="lede">Thirty people. One frozen district. Twelve hours to gather what you can. Six hours to decide who receives it.</p>
+        <p class="subtitle">Administrative survival · prototype 0.2</p>
+        <p class="lede">Thirty residents remain. Scavenge before dusk. Then decide how much food, heat and medicine each life is worth.</p>
+
+        <div class="cycle-preview" aria-label="Core game cycle">
+          <div><b>1</b><span>FIELD</span><small>06:00–18:00<br>Travel · assess · scavenge</small></div>
+          <i>→</i>
+          <div><b>2</b><span>LEDGER</span><small>18:00–00:00<br>Allocate scarce resources</small></div>
+          <i>→</i>
+          <div><b>3</b><span>NIGHT</span><small>00:00–06:00<br>Consequences are resolved</small></div>
+        </div>
+
         <div class="title-actions">
-          <button id="newGameBtn" class="primary">Open a New File</button>
+          <button id="newGameBtn" class="primary">Begin New Administration</button>
           <button id="continueBtn" class="secondary" disabled>Continue Previous File</button>
           <button id="installBtn" class="ghost hidden">Install on Device</button>
         </div>
+        <p class="title-help">First game? A guided tutorial starts automatically. You can replay it any time from <b>?</b>.</p>
         <div class="title-notes">
-          <span>Prototype build 0.1</span><span>Touch + mouse</span><span>Offline save</span>
+          <span>Build 0.2</span><span>Touch + mouse</span><span>Local save</span><span>Offline capable</span>
         </div>
       </div>
     </section>
@@ -43,39 +54,58 @@
           <div><span>DAY</span><b id="dayLabel">01</b></div>
           <div><span>TIME</span><b id="timeLabel">06:00</b></div>
           <div><span>ALIVE</span><b id="aliveLabel">30</b></div>
-          <div><span>SEED</span><b id="seedLabel">—</b></div>
+          <div class="seed-status"><span>SEED</span><b id="seedLabel">—</b></div>
         </div>
         <div class="top-actions">
+          <button id="helpBtn" class="icon-btn help-btn" aria-label="Tutorial and help">?</button>
           <button id="audioBtn" class="icon-btn" aria-label="Toggle ambience">◌</button>
           <button id="saveBtn" class="icon-btn" aria-label="Save">▣</button>
         </div>
       </header>
 
+      <div id="phaseRail" class="phase-rail" aria-label="Daily cycle">
+        <div data-phase="field" class="active"><b>01</b><span>FIELD</span><small>Gather & learn</small></div>
+        <div data-phase="ledger"><b>02</b><span>TRIAGE</span><small>Allocate</small></div>
+        <div data-phase="night"><b>03</b><span>NIGHT</span><small>Resolve</small></div>
+      </div>
+
       <section id="fieldView" class="mode-view active">
         <div class="world-wrap">
           <canvas id="world" aria-label="Isometric district map"></canvas>
           <div class="world-vignette"></div>
-          <div id="tapHint" class="tap-hint">Tap a marked site to inspect it</div>
+          <div id="objectiveCard" class="objective-card">
+            <span>CURRENT OBJECTIVE</span>
+            <b id="objectiveTitle">Scavenge before dusk</b>
+            <p id="objectiveBody">Visit marked sites. Every journey and action consumes time.</p>
+          </div>
+          <div id="tapHint" class="tap-hint">Tap a building or use the location list</div>
         </div>
 
         <aside class="field-sidebar">
-          <div class="sidebar-section">
-            <div class="section-title">FIELD INVENTORY</div>
+          <div class="sidebar-section resource-section">
+            <div class="section-title-row"><div class="section-title">SUPPLIES</div><small>Carried back to Town Hall</small></div>
             <div class="resource-grid">
-              <div><span>Nutrition</span><b id="foodStock">0</b></div>
-              <div><span>Heat</span><b id="heatStock">0</b></div>
-              <div><span>Medicine</span><b id="medStock">0</b></div>
-              <div><span>Scrap</span><b id="scrapStock">0</b></div>
+              <div><span>Nutrition</span><b id="foodStock">0</b><small>feeds residents</small></div>
+              <div><span>Heat</span><b id="heatStock">0</b><small>fuel & warmth</small></div>
+              <div><span>Medicine</span><b id="medStock">0</b><small>treats one resident</small></div>
+              <div><span>Scrap</span><b id="scrapStock">0</b><small>future upgrades</small></div>
             </div>
           </div>
-          <div class="sidebar-section">
-            <div class="section-title">FIELD NOTES</div>
+
+          <div class="sidebar-section locations-section">
+            <div class="section-title-row"><div class="section-title">LOCATIONS</div><small>Tap to visit</small></div>
+            <div id="siteDirectory" class="site-directory"></div>
+          </div>
+
+          <div class="sidebar-section notes-section">
+            <div class="section-title-row"><div class="section-title">FIELD LOG</div><small>Newest first</small></div>
             <div id="fieldLog" class="field-log"></div>
           </div>
+
           <div class="sidebar-section controls-section">
-            <div class="section-title">CURRENT DIRECTIVE</div>
-            <p id="directiveText">Gather enough to make tonight's arithmetic survivable.</p>
-            <button id="returnBtn" class="primary wide">Return to Town Hall</button>
+            <div class="section-title">END FIELD PHASE</div>
+            <p id="directiveText">Return when you are ready to distribute today's supplies. You may return before 18:00.</p>
+            <button id="returnBtn" class="primary wide">Return to Town Hall →</button>
           </div>
         </aside>
       </section>
@@ -86,19 +116,26 @@
             <div>
               <div class="stamp dark">POPULATION LEDGER · PROVISIONAL DATA</div>
               <h2>CALCULUS OF TRIAGE</h2>
-              <p>Requested allocations cannot exceed stock. Exact values are only visible for residents you have assessed.</p>
+              <p><b>Goal:</b> keep requested totals within available stock. Group sliders set defaults; individual ± controls override them. Assessed residents show reliable health data.</p>
             </div>
             <div class="ledger-stock">
-              <div><span>NUTRITION</span><b id="ledgerFood">0</b></div>
-              <div><span>HEAT</span><b id="ledgerHeat">0</b></div>
-              <div><span>MEDICINE</span><b id="ledgerMed">0</b></div>
+              <div><span>NUTRITION</span><b id="ledgerFood">0</b><small>available</small></div>
+              <div><span>HEAT</span><b id="ledgerHeat">0</b><small>available</small></div>
+              <div><span>MEDICINE</span><b id="ledgerMed">0</b><small>available</small></div>
             </div>
+          </div>
+
+          <div class="ledger-guide">
+            <span class="guide-step"><b>1</b> Set group rations</span>
+            <span class="guide-step"><b>2</b> Override individuals if needed</span>
+            <span class="guide-step"><b>3</b> Keep requested totals within stock</span>
+            <span class="guide-step"><b>4</b> Seal the ledger</span>
           </div>
 
           <div id="policyGrid" class="policy-grid"></div>
 
           <div class="ledger-tools">
-            <input id="residentSearch" type="search" placeholder="Search resident / occupation" autocomplete="off" />
+            <input id="residentSearch" type="search" placeholder="Search resident or occupation…" autocomplete="off" />
             <select id="residentFilter">
               <option value="all">All residents</option>
               <option value="critical">Critical health</option>
@@ -106,7 +143,8 @@
               <option value="known">Assessed in field</option>
               <option value="mutated">Mutated</option>
             </select>
-            <button id="autoMedicineBtn" class="secondary">Auto-triage medicine</button>
+            <button id="fitRationsBtn" class="assist-btn">Fit Plan to Stock</button>
+            <button id="autoMedicineBtn" class="secondary">Auto-triage Medicine</button>
           </div>
 
           <div class="table-wrap">
@@ -123,8 +161,8 @@
           <div class="ledger-foot">
             <div id="projectionText">Set ration policies.</div>
             <div class="ledger-foot-actions">
-              <button id="backToFieldBtn" class="ghost">Return to Field</button>
-              <button id="sealLedgerBtn" class="danger">Seal Ledger & End Day</button>
+              <button id="backToFieldBtn" class="ghost">← Return to Field</button>
+              <button id="sealLedgerBtn" class="danger">Seal Ledger & Resolve Night →</button>
             </div>
           </div>
         </div>
@@ -136,8 +174,24 @@
     <div id="modalCard" class="modal-card"></div>
   </div>
 
+  <div id="tutorialLayer" class="tutorial-layer hidden" aria-live="polite">
+    <div id="tutorialFocus" class="tutorial-focus hidden"></div>
+    <section class="tutorial-card">
+      <div class="tutorial-kicker">QUARTERMASTER ORIENTATION</div>
+      <div class="tutorial-progress"><span id="tutorialStepLabel">1 / 8</span><i><b id="tutorialProgressBar"></b></i></div>
+      <h2 id="tutorialTitle">Welcome</h2>
+      <p id="tutorialText"></p>
+      <div id="tutorialTip" class="tutorial-tip"></div>
+      <div class="tutorial-actions">
+        <button id="tutorialSkip" class="ghost">Skip tutorial</button>
+        <button id="tutorialNext" class="primary">Continue</button>
+      </div>
+    </section>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
 
   <script src="./game.js" defer></script>
+  <script src="./ux.js" defer></script>
 </body>
 </html>
