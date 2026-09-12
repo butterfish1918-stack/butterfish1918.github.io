@@ -1,0 +1,102 @@
+ds % barSecs) / barSecs : 0;
+    const warpedProgress = baseProg + Math.sin(baseProg * Math.PI * 2) * (elasticity * 0.05);
+    const stepProgress = warpedProgress * STEPS, radTheta = warpedProgress * Math.PI * 2;
+    
+    kickEnergyRef.current *= 0.94;
+    auraLogic.current.hatJitter *= 0.88;
+    auraLogic.current.rotation += auraLogic.current.rotationSpeed;
+
+    // --- LAYER 5: THE CHROMATOGRAPHIC NEBULA (Evolving Stains) ---
+    stains.current.forEach((s, i) => {
+      s.angle += s.speed * (1 + entropy);
+      s.phase += 0.01;
+      const kickScale = 1 + kickEnergyRef.current * 0.4;
+      const stainR = maxR * (1.1 + Math.sin(s.phase * 0.5) * 0.1);
+      const sx = cx + Math.cos(s.angle) * stainR;
+      const sy = cy + Math.sin(s.angle) * stainR;
+      const entropyHue = (200 - (entropy * 180) + (i * 20)) % 360;
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, s.size * kickScale);
+      g.addColorStop(0, `hsla(${entropyHue}, 80%, 50%, 0.15)`);
+      g.addColorStop(1, `hsla(${entropyHue}, 80%, 50%, 0)`);
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const symm = 4 + Math.floor(entropy * 4);
+      for(let j=0; j<symm; j++) {
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate((j / symm) * Math.PI * 2); ctx.translate(-cx, -cy);
+        ctx.fillStyle = g;
+        const morphW = s.size * (1 + pseudoNoise(time * 0.001 + i) * 0.3);
+        const morphH = s.size * (1 + pseudoNoise(time * 0.0013 + i) * 0.3);
+        ctx.beginPath(); ctx.ellipse(sx, sy, morphW * kickScale, morphH * kickScale, s.phase, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    });
+
+    // --- LAYER 4: THE GENERATIVE AURA (Rings) ---
+    ctx.save();
+    const ringCount = 3 + Math.floor(auraZoom * 2);
+    const entropyHue = 200 - (entropy * 180);
+    for (let rIdx = 1; rIdx <= ringCount; rIdx++) {
+      const baseRadius = maxR * (1 + rIdx * 0.35 * auraZoom) + (kickEnergyRef.current * 80 * rIdx);
+      const points = auraLogic.current.chaosPoints + (rIdx * 2);
+      const rotation = auraLogic.current.rotation * (1 / rIdx);
+      ctx.beginPath(); ctx.lineWidth = auraLogic.current.chaosThickness * (0.8 / rIdx);
+      const grad = ctx.createRadialGradient(cx, cy, baseRadius * 0.7, cx, cy, baseRadius * 1.3);
+      grad.addColorStop(0, `hsla(${entropyHue}, 70%, 40%, 0)`);
+      grad.addColorStop(0.5, `hsla(${entropyHue + (rIdx * 15)}, 80%, 50%, ${auraLogic.current.chaosOpacity / rIdx})`);
+      grad.addColorStop(1, `hsla(${entropyHue}, 70%, 40%, 0)`);
+      ctx.strokeStyle = grad;
+      for (let p = 0; p <= points; p++) {
+        const ang = (p / points) * Math.PI * 2 + rotation;
+        const noiseVal = pseudoNoise(ang * 4 + time * 0.0012) * 40 * auraLogic.current.hatJitter;
+        const finalR = baseRadius + noiseVal;
+        const px = cx + Math.cos(ang) * finalR; const py = cy + Math.sin(ang) * finalR;
+        p === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        if (entropy > 0.65 && p % 2 === 0) ctx.lineTo(cx + Math.cos(ang + 0.12) * (finalR * 1.15), cy + Math.sin(ang + 0.12) * (finalR * 1.15));
+      }
+      ctx.stroke();
+    }
+    auraParticlesRef.current.forEach((p) => {
+      const noiseX = Math.sin(p.x * 0.006 + time * 0.0006) * 1.2; const noiseY = Math.cos(p.y * 0.006 + time * 0.0006) * 1.2;
+      p.vx += noiseX * 0.015; p.vy += noiseY * 0.015; p.x += p.vx; p.y += p.vy; p.life -= 0.007;
+      if (p.life > 0) { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 + kickEnergyRef.current), 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.globalAlpha = p.life * (0.2 + (1 - kickEnergyRef.current) * 0.3); ctx.fill(); }
+    });
+    ctx.restore();
+
+    // --- INTERFACE (Layer 3-1) ---
+    ctx.lineWidth = 6; ctx.strokeStyle = '#111'; ctx.beginPath(); ctx.arc(cx, cy, maxR - 4, 0, Math.PI * 2); ctx.stroke();
+    const horizonParams = [{ id: 'bpm', label: 'TIME', val: (bpm - 30) / 270 }, { id: 'masterVol', label: 'VOLUME', val: (masterVol + 60) / 60 }, { id: 'elasticity', label: 'ELASTIC', val: elasticity }, { id: 'entropy', label: 'ENTROPY', val: entropy }, { id: 'harmonicMorph', label: 'MORPH', val: harmonicMorph }, { id: 'rootFreq', label: 'GLIDE', val: (rootFreq - 40) / 70 }, { id: 'feedbackIntensity', label: 'CYBER', val: feedbackIntensity }];
+    horizonParams.forEach((p, i) => {
+      const start = (i + 0.5) / 8, isFocused = focusedParam === p.id;
+      ctx.strokeStyle = '#151515'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(cx, cy, maxR - 4, start * Math.PI * 2, (start + 0.125) * Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = isFocused ? '#fff' : '#444'; ctx.lineWidth = isFocused ? 6 : 4;
+      ctx.beginPath(); ctx.arc(cx, cy, maxR - 4, start * Math.PI * 2, (start + p.val * 0.125) * Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = isFocused ? '#fff' : '#666'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(p.label, cx + Math.cos((start + 0.0625) * Math.PI * 2) * (maxR + 15), cy + Math.sin((start + 0.0625) * Math.PI * 2) * (maxR + 15));
+    });
+    ctx.fillStyle = isPlaying ? '#0f0' : '#f00'; ctx.beginPath(); ctx.arc(cx + Math.cos(0.05 * Math.PI * 2) * (maxR - 4), cy + Math.sin(0.05 * Math.PI * 2) * (maxR - 4), 6, 0, Math.PI * 2); ctx.fill();
+
+    if (selectedTrack !== null) {
+      const color = getTrackColor(selectedTrack, 60, 100);
+      const t = tracks[selectedTrack];
+      const dnaParams = [{ id: 'fmRatio', label: 'FM RATIO', val: (t.fmRatio - 0.1) / 9.9 }, { id: 'fmIndex', label: 'TIMBRE', val: t.fmIndex / 50 }, { id: 'inharmonicity', label: 'DETUNE', val: t.inharmonicity }, { id: 'decay', label: 'ENVELOPE', val: (t.decay - 0.01) / 3.99 }, { id: 'pitchDepth', label: 'PITCH ENV', val: t.pitchDepth / 2 }, { id: 'cutoff', label: 'FILTER', val: t.cutoff }, { id: 'probability', label: 'CHAOS', val: t.probability }, { id: 'reverbSend', label: 'DIFFUSION', val: t.reverbSend }];
+      dnaParams.forEach((p, i) => {
+        const start = i / 8, end = (i + 1) / 8, isFocused = focusedParam === p.id;
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, uiLabR, start * Math.PI * 2 + 0.05, end * Math.PI * 2 - 0.05); ctx.stroke();
+        ctx.strokeStyle = isFocused ? '#fff' : color; ctx.lineWidth = isFocused ? 5 : 3;
+        ctx.beginPath(); ctx.arc(cx, cy, uiLabR, start * Math.PI * 2 + 0.05, (start + p.val * 0.125) * Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = isFocused ? '#fff' : color; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(p.label, cx + Math.cos((start + 0.0625) * Math.PI * 2) * (uiLabR - 15), cy + Math.sin((start + 0.0625) * Math.PI * 2) * (uiLabR - 15));
+      });
+    }
+
+    // --- LAYER 1: THE PUPIL & THE IRIS (RANDOMIZER) ---
+    // The Core Mandala
+    ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+    
+    // THE IRIS (Sneaky Randomizer Button)
+    ctx.save();
+    const irisGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, 8);
+    irisGrd.addColorStop(0, '#000');
+    irisGrd.
