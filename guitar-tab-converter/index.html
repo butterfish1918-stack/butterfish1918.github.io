@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="#1a1818" name="theme-color"/>
+<meta content="dark" name="color-scheme"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Gothic ABC music analyser and guitar tablature converter." name="description"/>
+<link href="./manifest.webmanifest" rel="manifest"/>
+<link href="./icon.svg" rel="icon" type="image/svg+xml"/>
+<title>Chiaroscuro Gothica: Harmonic Analyser</title>
+<!-- External Libraries - Stable CDN for ABCJS 6.4.2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.4.2/abcjs-basic-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Typography of the Damned -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&amp;family=Pirata+One&amp;family=EB+Garamond:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="./app.css" rel="stylesheet"/>
+</head>
+<body>
+<div id="message-box"></div>
+<header>
+<h1>Mvsicvm Analyticvm</h1>
+<p class="subtitle">Polyphonic MIR &amp; Fretboard Divination</p>
+</header>
+<div class="container">
+<div class="panel">
+<h2>Scriptorvm (ABC Input)</h2>
+<textarea id="abc-input" spellcheck="false">
+X:1
+T:Trashy (Full Band Master w/ Intro)
+C:Cleaned MIDI Restructure &amp; Rhythm Section
+Q:1/4=120
+M:4/4
+L:1/16
+K:C clef=bass
+%%staves {1 2 3 4 9}
+% --- MIXING &amp; INSTRUMENTS ---
+V:1 name="Fuzz Guitar" clef=bass
+V:2 name="Leslie Guitar" clef=bass
+V:3 name="Heavy Bass" clef=bass
+V:4 name="Synth Pad" clef=treble
+V:9 name="Drums" clef=perc
+%
+V:1
+z16 | z16 | z16 | z16 | z16 |
+V:2
+!mp! &lt;(! [E,,G,,B,,E,G,]16 | [E,,G,,B,,E,G,]16 | [E,,G,,B,,E,G,]16 | [E,,G,,B,,E,G,]16 !)! | z16 |
+V:3
+E,,16 | E,,16 | E,,16 | E,,16 | E,,2E,,2 E,,2E,,2 E,,2z2 z4 |
+V:4
+!p! &lt;(! [E16B16e16g16] | [E16B16e16g16] | [E16B16e16g16] | [E16B16e16g16] !)! | z16 |
+V:9
+C,,4 ^F,,4 C,,4 ^F,,4 | C,,4 ^F,,4 C,,4 ^F,,4 | C,,2C,,2 ^F,,4 C,,2C,,2 ^F,,4 | C,,2C,,2 ^F,,2^F,,2 C,,2C,,2 ^F,,2^F,,2 | D,,2D,,2 F,,2F,,2 A,,2A,,2 ^C,4 |
+            </textarea>
+<div class="controls">
+<button id="render-main-btn" onclick="initialiseRendering()">Analyse &amp; Render Score</button>
+<button id="toggle-btn" onclick="toggleNotation()" style="display:none;">View Tablature Only</button>
+<button id="pdf-btn" onclick="exportToPDF()" style="display:none;">Liberate as PDF</button>
+</div>
+<div class="app-note">Android-ready PWA · your draft is saved locally on this device.</div>
+</div>
+<div class="vellum-wrapper" id="output-wrapper">
+<div class="analysis-box" id="analysis-output"></div>
+<h4 style="font-family:var(--font-display); color:var(--accent-blood); font-size: 2.2rem; text-align: center; margin-bottom: 15px;">Harmonic Lexicon (Voicings)</h4>
+<div id="chord-overview"></div>
+<div id="sheet-music"></div>
+</div>
+</div>
+
+<script defer="" src="./engine.js"></script><script defer="" src="./app.js"></script></body>
+</html>
