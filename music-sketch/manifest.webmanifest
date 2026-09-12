@@ -1,11 +1,11 @@
 {
   "name": "Music Sketch",
   "short_name": "Music Sketch",
-  "description": "Offline-first music composition sketchbook with advanced notation, all-track tracker, deep scale/chord lab, pattern variation, vocal phonetics, arrangement-aware bass/drum guidance, ABC, MIDI and MusicXML.",
+  "description": "Music Sketch 0.9 — a polished offline-first music composition workstation with notation, piano roll, tracker, arrangement overview, harmony tools and arrangement-aware guidance.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0b0d11",
-  "theme_color": "#0b0d11",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "icons": [
     {
       "src": "./icon-192.png",
