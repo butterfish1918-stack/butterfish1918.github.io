@@ -11,15 +11,72 @@
   <meta name="description" content="Heliocentric — a 16-track generative FM rhythm engine." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./heliocentric-icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=7" />
+  <link rel="stylesheet" href="./styles.css?v=8" />
+  <link rel="stylesheet" href="./hud-fix.css?v=8" />
   <title>Heliocentric</title>
 </head>
 <body>
   <div id="root"></div>
 
+  <div id="heliocentric-ui" aria-label="Heliocentric interface guide">
+    <div class="hud-brand" aria-hidden="true">
+      <strong>Heliocentric</strong>
+      <span>FM Rhythm System · Mk II</span>
+    </div>
+
+    <div class="live-readout" aria-label="Playback status">
+      <span class="live-dot"></span>
+      <span class="live-state">Ready</span>
+      <span class="live-bpm">120 BPM</span>
+    </div>
+
+    <details class="help-menu">
+      <summary aria-label="Open help" aria-expanded="false">?</summary>
+      <div class="help-card">
+        <div class="help-eyebrow">Instrument guide</div>
+        <h2>Play the circle</h2>
+        <p>Heliocentric is deliberately non-linear: each concentric ring is a sound, and each slice around the ring is one of 16 rhythmic steps.</p>
+
+        <div class="help-grid">
+          <div class="help-step">
+            <div class="help-key">1</div>
+            <div class="help-copy"><strong>Build a pattern</strong><span>Tap a ring segment to switch that step on or off. The ring you touch becomes the selected instrument.</span></div>
+          </div>
+          <div class="help-step">
+            <div class="help-key">2</div>
+            <div class="help-copy"><strong>Shape the system</strong><span>Drag inward or outward on the outer labelled arcs to change tempo, volume, elasticity, entropy, morph, root and feedback.</span></div>
+          </div>
+          <div class="help-step">
+            <div class="help-key">3</div>
+            <div class="help-copy"><strong>Shape one sound</strong><span>Select a track, then drag its inner parameter arcs to alter FM ratio, timbre, detune, envelope, pitch motion, filter, probability and diffusion.</span></div>
+          </div>
+          <div class="help-step">
+            <div class="help-key">✦</div>
+            <div class="help-copy"><strong>Generate</strong><span>Use Generate for a complete new system. Clear removes all active steps without resetting the sound design.</span></div>
+          </div>
+        </div>
+
+        <div class="track-groups">
+          <div class="track-groups-title">Ring families · centre → outside</div>
+          <div class="track-group"><span class="track-swatch" style="color:#ff5555;background:#ff5555"></span><span>Foundation · sub, kettle, pulse, boom</span></div>
+          <div class="track-group"><span class="track-swatch" style="color:#ffd45a;background:#ffd45a"></span><span>Body · clay, bamboo, log, snap</span></div>
+          <div class="track-group"><span class="track-swatch" style="color:#63e6be;background:#63e6be"></span><span>Resonance · gong, bowl, bell, plate</span></div>
+          <div class="track-group"><span class="track-swatch" style="color:#74c0fc;background:#74c0fc"></span><span>Aether · shaker, glass, rain, dust</span></div>
+        </div>
+
+        <div class="track-groups">
+          <div class="track-groups-title">Desktop shortcuts</div>
+          <div class="track-group"><span>Space · play/pause &nbsp; G · generate &nbsp; X · clear &nbsp; H · help</span></div>
+        </div>
+      </div>
+    </details>
+
+    <div class="interaction-hint" aria-hidden="true">Tap ring = step · drag arcs = shape · ✦ = generate</div>
+    <div class="selected-chip" aria-live="polite"><span>Selected</span><strong>No track selected</strong></div>
+  </div>
+
   <script>
-    // Build 7 deliberately removes the old Heliocentric service worker/cache.
-    // That cache contained broken early source chunks on some Android devices.
+    // Keep Heliocentric isolated from earlier service-worker builds.
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((reg) => {
@@ -34,9 +91,10 @@
     }
   </script>
 
-  <script src="../vendor/react.development.js?v=7"></script>
-  <script src="../vendor/react-dom.development.js?v=7"></script>
+  <script src="../vendor/react.development.js?v=8"></script>
+  <script src="../vendor/react-dom.development.js?v=8"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.9.17/Tone.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="./loader.js?v=7"></script>
+  <script src="./loader.js?v=8"></script>
+  <script src="./ui.js?v=8"></script>
 </body>
 </html>
