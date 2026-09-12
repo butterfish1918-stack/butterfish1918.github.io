@@ -37,21 +37,24 @@ function init() {
 function populateMenu() {
     const container = document.getElementById('protocol-container');
     container.innerHTML = '';
-    Object.keys(CATEGORIES).forEach(catKey => {
+    Object.keys(CATEGORIES).forEach((catKey, catIndex) => {
+        const protocols = PROTOCOLS.filter(p => p.cat === catKey);
         const details = document.createElement('details');
         details.className = 'category';
         details.open = true;
         const summary = document.createElement('summary');
-        summary.innerText = CATEGORIES[catKey];
+        summary.innerHTML = `<span class="category-title"><span class="category-index">${String(catIndex + 1).padStart(2, '0')}</span><span>${CATEGORIES[catKey]}</span></span><span class="category-count">${String(protocols.length).padStart(2, '0')} PROTOCOLS</span>`;
         details.appendChild(summary);
         const list = document.createElement('div');
         list.className = 'protocol-list';
-        PROTOCOLS.filter(p => p.cat === catKey).forEach(p => {
+        protocols.forEach((p, protocolIndex) => {
             const item = document.createElement('div');
             item.className = 'protocol-item';
             item.setAttribute('role', 'button');
+            item.setAttribute('aria-label', `${p.name}. ${p.desc}. ${p.meta}`);
+            item.style.setProperty('--protocol-color', p.color || '#ffbf00');
             item.tabIndex = 0;
-            item.innerHTML = `<span class="p-name">${p.name}</span><span class="p-desc">${p.desc}</span><span class="p-meta">${p.meta}</span>`;
+            item.innerHTML = `<span class="p-code">${String(protocolIndex + 1).padStart(2, '0')}</span><span class="p-name">${p.name}</span><span class="p-desc">${p.desc}</span><span class="p-meta">${p.meta}</span>`;
             const activate = () => selectProtocol(p);
             item.addEventListener('click', activate);
             item.addEventListener('keydown', e => {
@@ -125,7 +128,9 @@ function startSession() {
     STATE.color = STATE.protocol.color;
     document.getElementById('menu-layer').classList.add('hidden');
     document.getElementById('active-hud').style.opacity = 1;
-    document.getElementById('current-mode-name').innerText = STATE.protocol.name.toUpperCase();
+    document.getElementById('current-mode-name').innerText = `MODE: ${STATE.protocol.name.toUpperCase()}`;
+    document.getElementById('mode-meta').innerText = `${STATE.protocol.meta} // ${STATE.protocol.physics.replaceAll('_', ' ')}`;
+    document.getElementById('session-progress-fill').style.width = '0%';
     document.getElementById('sound-btn').innerText = `AUDIO: ${STATE.audioEnabled ? 'ON' : 'OFF'}`;
     document.getElementById('sound-btn').setAttribute('aria-pressed', String(STATE.audioEnabled));
     AudioEngine.setup(STATE.protocol);
@@ -141,6 +146,7 @@ function stopSession() {
     document.getElementById('active-hud').style.opacity = 0;
     document.getElementById('canvas-container').style.filter = 'blur(15px) contrast(30)';
     document.getElementById('breath-guide').style.transform = 'translate(-50%, -50%) scale(1)';
+    document.getElementById('session-progress-fill').style.width = '0%';
 }
 
 document.getElementById('stop-btn').addEventListener('click', stopSession);
@@ -200,6 +206,7 @@ function renderLoop() {
     if (STATE.phase !== previousPhase) triggerPhaseFeedback(STATE.phase);
     const remaining = Math.max(0, STATE.durationLimit - sessionElapsed);
     document.getElementById('timer').innerText = formatTime(remaining);
+    document.getElementById('session-progress-fill').style.width = `${Math.min(100, (sessionElapsed / STATE.durationLimit) * 100)}%`;
     let labelText = STATE.phase;
     if (p.id === 'DIVER') labelText = 'HOLD / APNEA';
     else if(labelText === 'IN') labelText = 'INHALE';
