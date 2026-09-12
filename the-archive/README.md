@@ -52,3 +52,14 @@ Because this is a static GitHub Pages app without Google/Microsoft OAuth credent
 ## Android
 
 Open the live URL in Chrome and choose **Install app** / **Add to Home screen**. The service worker caches the v11 application shell and runtime assets for repeat/offline use.
+
+
+## v12 · Decision Layer
+
+- Morning Mode for one-tap daily dressing
+- Safe / Balanced / Experimental recommendation personalities
+- Explainable recommendations with weather, harmony, rotation and preference reasoning
+- In-place garment replacement ranked against the rest of the current look
+- Personal body measurement profile and garment-level fit measurements
+- Fit-risk hints for tops, outerwear and trousers
+- Existing v11 wardrobe records remain backward-compatible

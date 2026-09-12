@@ -2,3 +2,12 @@
 @media(max-width:767px){body{padding:max(.75rem,env(safe-area-inset-top)) .75rem max(1.25rem,env(safe-area-inset-bottom))}.shell{max-width:none}.topnav{overflow-x:auto;gap:1rem!important;padding-bottom:.5rem}.topnav .tab{min-height:44px}.card{border-radius:8px}.section-title{font-size:1.72rem}.desktop-only{display:none!important}.mobile-stack{grid-template-columns:1fr!important}.modal-panel{width:calc(100vw - 1rem)!important;max-height:calc(100dvh - 1rem);overflow:auto;margin:.5rem}.metric{font-size:1.6rem}.closet-item{min-width:132px}.btn{min-height:44px}.weather-orb{width:54px;height:54px}}
 @media(hover:none){.card:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Wardrobe Intelligence v12 */
+.morning-overlay{position:fixed;inset:0;z-index:145;background:radial-gradient(circle at 20% 0%,rgba(94,75,55,.22),transparent 40%),#121110;overflow:auto;padding:max(18px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));}
+.morning-shell{width:min(1100px,100%);margin:0 auto;padding:clamp(10px,3vw,32px) 0;}
+html.morning-open,html.morning-open body{overflow:hidden;}
+.mode-switch{display:flex;gap:6px;flex-wrap:wrap}.mode-switch .btn{font-size:10px;padding:.55rem .75rem;}
+.reason-row{display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(120,113,108,.22);font-size:12px}.reason-row:first-of-type{margin-top:8px}.reason-row strong{font-family:'Playfair Display',serif;font-size:14px;font-weight:400;color:#e7e5e4}.reason-row span{color:#a8a29e;line-height:1.45}.mini-action{border:1px solid rgba(120,113,108,.45);padding:7px 9px;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#a8a29e;transition:.2s}.mini-action:hover{border-color:#d6d3d1;color:#f5f5f4}.replacement-card{transition:transform .18s ease,border-color .18s ease}.replacement-card:hover{transform:translateY(-2px);border-color:#a8a29e}.morning-primary{min-height:54px;font-size:12px}.fit-score{font-variant-numeric:tabular-nums}
+@media(max-width:640px){.reason-row{grid-template-columns:1fr;gap:3px}.morning-overlay{padding-top:max(14px,env(safe-area-inset-top))}.morning-shell{padding-top:8px}.replacement-card:hover{transform:none}}

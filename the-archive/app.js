@@ -1,4 +1,4 @@
-const ARCHIVE_VERSION = '11.0.0';
+const ARCHIVE_VERSION = '12.0.0';
 const DEFAULT_CATEGORIES = [
   'OUTERWEAR','JACKET','SUIT','SHIRT','T-SHIRT','POLO','KNITWEAR','TROUSERS','JEANS','SHORTS',
   'SHOES','BOOTS','SOCKS','BELT','WATCH','BAG','TIE','POCKET SQUARE','HAT','SCARF','JEWELLERY','GLASSES',
@@ -40,7 +40,8 @@ return {
   garmentModal:false, editingGarmentId:null, garmentDraft:{}, garmentPhotoName:'',
   builderSelected:[], builderFilter:'', builderSeason:'ALL', builderCategory:'ALL', builderOccasion:'WORK',
   archiveSeason:'ALL', outfitModal:false, outfitDraft:{},
-  generator:{season:'AUTUMN',occasion:'WORK',archetype:'',weather:'AUTO'}, generatedLook:[], generatedScore:0, generatedReasons:[],
+  generator:{season:'AUTUMN',occasion:'WORK',archetype:'',weather:'AUTO',mode:'BALANCED'}, generatedLook:[], generatedScore:0, generatedReasons:[], generatedExplanation:[], generationNonce:0,
+  replacementModal:false,replaceTargetId:null,morningMode:false,fitModal:false,
   feedbackModal:false, feedbackDraft:{outfitId:'',garmentIds:[],vote:1,reason:'LOVE IT',note:''},
   planDraft:{date:new Date().toISOString().slice(0,10),outfitId:'',note:''},
   wishDraft:{name:'',category:'SHOES',price:'',colorHex:'#57534e',seasonsText:'AUTUMN; WINTER',formality:3,notes:''},
@@ -49,7 +50,7 @@ return {
   syncModal:false, firebaseConfigText:'',
   weather:{status:'idle',label:'',lat:null,lon:null,temp:null,apparent:null,humidity:null,precipitation:null,wind:null,code:null,condition:'',updatedAt:null},
   weatherCity:'', weatherSearchResults:[],
-  prefs:{weatherAuto:false,weatherLabel:'',weatherLat:null,weatherLon:null,defaultOccasion:'WORK',defaultSeason:'AUTUMN'},
+  prefs:{weatherAuto:false,weatherLabel:'',weatherLat:null,weatherLon:null,defaultOccasion:'WORK',defaultSeason:'AUTUMN',recommendationMode:'BALANCED',bodyProfile:{height:null,chest:null,waist:null,hips:null,inseam:null,sleeve:null,shoulder:null,neck:null,shoe:'',notes:''}},
 
   databaseCards:[
     {type:'garments',label:'Garments',importable:true},{type:'outfits',label:'Outfits',importable:true},{type:'wears',label:'Wear events'},
@@ -83,10 +84,15 @@ return {
   },
 
   loadPrefs(){
-    try{ this.prefs={...this.prefs,...JSON.parse(localStorage.getItem('archive:v11:prefs')||'{}')}; }catch{}
-    this.generator.occasion=this.prefs.defaultOccasion||'WORK'; this.generator.season=this.prefs.defaultSeason||this.currentSeason();
+    try{ const saved=JSON.parse(localStorage.getItem('archive:v11:prefs')||'{}'); this.prefs={...this.prefs,...saved,bodyProfile:{...this.prefs.bodyProfile,...(saved.bodyProfile||{})}}; }catch{}
+    this.generator.occasion=this.prefs.defaultOccasion||'WORK'; this.generator.season=this.prefs.defaultSeason||this.currentSeason(); this.generator.mode=this.prefs.recommendationMode||'BALANCED';
   },
   savePrefs(){ localStorage.setItem('archive:v11:prefs',JSON.stringify(this.prefs)); },
+  setRecommendationMode(mode){ this.generator.mode=mode;this.prefs.recommendationMode=mode;this.savePrefs();this.generateOutfit(); },
+  openMorningMode(){this.morningMode=true;this.ensureTodayRecommendation();document.documentElement.classList.add('morning-open');},
+  closeMorningMode(){this.morningMode=false;document.documentElement.classList.remove('morning-open');},
+  openFitProfile(){this.fitModal=true;},
+  saveFitProfile(){this.prefs.bodyProfile={...this.prefs.bodyProfile};this.savePrefs();this.fitModal=false;this.toast('Fit profile saved');},
   toast(msg){ this.toastText=msg; clearTimeout(this.toastTimer); this.toastTimer=setTimeout(()=>this.toastText='',2600); },
   uid(prefix='ID'){ return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; },
   today(){ return new Date().toISOString().slice(0,10); },
@@ -94,6 +100,7 @@ return {
   prettyDate(d){ if(!d)return'—'; const x=new Date(`${d}T12:00:00`); return Number.isNaN(x)?d:x.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}); },
   money(v){ if(v===null||v===undefined||v===''||Number.isNaN(+v))return'—'; return new Intl.NumberFormat(undefined,{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(+v); },
   clamp(n,min,max){ return Math.max(min,Math.min(max,n)); },
+  numOrNull(v){return v===null||v===undefined||v===''?null:+v;},
   daysBetween(a,b=this.today()){ if(!a)return 9999; return Math.floor((new Date(`${b}T12:00:00`)-new Date(`${a}T12:00:00`))/86400000); },
   async save(type,items){ await window.ArchiveStorage.saveItems(type,items); },
   async replace(type,items){ await window.ArchiveStorage.replace(type,items); },
@@ -101,7 +108,8 @@ return {
   blankGarment(){
     return {id:'',name:'',category:'JACKET',status:'AVAILABLE',brand:'',color:'',colorHex:'#57534e',palette:[],material:'',pattern:'',size:'',
       seasonsText:'AUTUMN; WINTER',formality:3,price:null,purchaseDate:'',fit:'',care:'',careType:'LAUNDRY',careAction:'Clean',wearLimit:null,
-      careIntervalDays:90,lastCareDate:'',nextCareDate:'',warmth:3,waterproof:false,tagsText:'',notes:'',image:'',cutoutImage:''};
+      careIntervalDays:90,lastCareDate:'',nextCareDate:'',warmth:3,waterproof:false,tagsText:'',notes:'',image:'',cutoutImage:'',
+      measureChest:null,measureWaist:null,measureInseam:null,measureSleeve:null,measureShoulder:null,measureLength:null};
   },
   newGarment(){ this.editingGarmentId=null; this.garmentPhotoName=''; this.garmentDraft=this.blankGarment(); this.garmentModal=true; },
   openGarment(g){
@@ -117,6 +125,7 @@ return {
       tags:this.garmentDraft.tagsText.split(/[,;]/).map(s=>s.trim().toUpperCase()).filter(Boolean),
       wearLimit:+this.garmentDraft.wearLimit||this.defaultWearLimit(this.garmentDraft.category),
       formality:+this.garmentDraft.formality||3,warmth:+this.garmentDraft.warmth||3,price:this.garmentDraft.price===''?null:+this.garmentDraft.price,
+      measureChest:this.numOrNull(this.garmentDraft.measureChest),measureWaist:this.numOrNull(this.garmentDraft.measureWaist),measureInseam:this.numOrNull(this.garmentDraft.measureInseam),measureSleeve:this.numOrNull(this.garmentDraft.measureSleeve),measureShoulder:this.numOrNull(this.garmentDraft.measureShoulder),measureLength:this.numOrNull(this.garmentDraft.measureLength),
       updatedAt:new Date().toISOString()};
     delete g.seasonsText; delete g.tagsText;
     await this.save('garments',[g]); this.garmentModal=false; this.toast(this.editingGarmentId?'Garment updated':'Garment archived');
@@ -342,25 +351,66 @@ return {
     if((a.tags||[]).some(x=>(g.tags||[]).includes(String(x).toUpperCase())))s+=12;
     const f=+g.formality||3;if(a.formalityMin&&f<a.formalityMin)s-=10;if(a.formalityMax&&f>a.formalityMax)s-=10;return s;
   },
+  garmentGeneratorScore(g){
+    const season=this.generator.season||this.currentSeason(),occasion=this.generator.occasion||'WORK',tags=this.weatherTags,mode=this.generator.mode||'BALANCED';
+    let s=35;if((g.seasons||[]).includes(season))s+=22;if((g.tags||[]).includes(occasion))s+=20;if(tags.some(t=>(g.tags||[]).includes(t)))s+=12;
+    if(tags.includes('RAIN')&&g.waterproof)s+=18;if(tags.includes('COLD'))s+=(+g.warmth||3)*4;if(tags.includes('HOT'))s+=(6-(+g.warmth||3))*4;
+    s+=this.archetypeGarmentBonus(g,this.generator.archetype);s+=this.garmentFeedbackScore(g.id)*(mode==='SAFE'?18:14);s-=this.garmentRecencyPenalty(g.id);
+    const neglected=Math.min(22,this.daysSinceGarmentWorn(g.id)/4);s+=mode==='EXPERIMENTAL'?neglected*1.65:mode==='BALANCED'?neglected:.35*neglected;
+    if(mode==='SAFE'&&this.garmentWearCount(g.id)===0)s-=8; if(mode==='EXPERIMENTAL'&&this.garmentWearCount(g.id)===0)s+=16;
+    return s;
+  },
   rankedGarmentsForGenerator(){
-    const season=this.generator.season||this.currentSeason(), occasion=this.generator.occasion||'WORK', tags=this.weatherTags;
+    const season=this.generator.season||this.currentSeason();
     const pool=this.garments.filter(g=>['AVAILABLE','WORN'].includes(g.status)&&((g.seasons||[]).includes(season)||!(g.seasons||[]).length));
-    const score=g=>{
-      let s=35;if((g.seasons||[]).includes(season))s+=22;if((g.tags||[]).includes(occasion))s+=20;if(tags.some(t=>(g.tags||[]).includes(t)))s+=12;
-      if(tags.includes('RAIN')&&g.waterproof)s+=18;if(tags.includes('COLD'))s+=(+g.warmth||3)*4;if(tags.includes('HOT'))s+=(6-(+g.warmth||3))*4;
-      s+=this.archetypeGarmentBonus(g,this.generator.archetype);s+=this.garmentFeedbackScore(g.id)*14;s-=this.garmentRecencyPenalty(g.id);s+=Math.min(12,this.daysSinceGarmentWorn(g.id)/5);return s;
-    };
-    return [...pool].sort((a,b)=>score(b)-score(a));
+    return [...pool].sort((a,b)=>this.garmentGeneratorScore(b)-this.garmentGeneratorScore(a));
+  },
+  chooseForMode(cats,ranked,used=[]){
+    let c=ranked.filter(g=>cats.includes(g.category)&&!used.includes(g.id));if(!c.length)return null;
+    c=c.slice(0,this.generator.mode==='SAFE'?4:this.generator.mode==='EXPERIMENTAL'?10:6);
+    const rest=this.generatedLook.filter(g=>!used.includes(g.id));
+    const compat=g=>{const probe=[...rest.filter(x=>!cats.includes(x.category)),g];return this.outfitCompatibility(probe,this.generator.season,this.generator.occasion).total;};
+    c.sort((a,b)=>(this.garmentGeneratorScore(b)+compat(b)*.35)-(this.garmentGeneratorScore(a)+compat(a)*.35));
+    if(this.generator.mode==='SAFE')return c[0];
+    if(this.generator.mode==='EXPERIMENTAL'){const pool=c.slice(0,Math.min(5,c.length));return pool[Math.floor(Math.random()*pool.length)];}
+    const pool=c.slice(0,Math.min(3,c.length));return pool[Math.floor(Math.random()*pool.length)];
+  },
+  buildRecommendationExplanation(gs){
+    if(!gs.length)return[];const tags=this.weatherTags,score=this.outfitCompatibility(gs,this.generator.season,this.generator.occasion),mode=this.generator.mode||'BALANCED';
+    const out=[{title:`${mode.charAt(0)+mode.slice(1).toLowerCase()} selection`,text:mode==='SAFE'?'Prioritises proven combinations, strong feedback and consistency.':mode==='EXPERIMENTAL'?'Pushes neglected pieces and less familiar combinations while retaining compatibility safeguards.':'Balances proven combinations with rotation and some novelty.'}];
+    if(this.weather.status==='ready')out.push({title:'Weather fit',text:`${Math.round(this.weather.temp)}°C, ${this.weather.condition.toLowerCase()}. Weather score ${score.weather}/100${tags.length?` · ${tags.join(', ')}`:''}.`});
+    out.push({title:'Harmony',text:`Colour ${score.color}/100 · formality ${score.formality}/100 · season ${score.season}/100.`});
+    const old=gs.slice().sort((a,b)=>this.daysSinceGarmentWorn(b.id)-this.daysSinceGarmentWorn(a.id))[0];if(old)out.push({title:'Rotation',text:`${old.name} has been out of rotation for ${Math.min(999,this.daysSinceGarmentWorn(old.id))} days${this.garmentWearCount(old.id)===0?' and has no recorded wear yet':''}.`});
+    const learned=gs.reduce((s,g)=>s+this.garmentFeedbackScore(g.id),0)/Math.max(1,gs.length);out.push({title:'Preference model',text:learned>.25?'Your past feedback strongly supports these pieces.':learned<-.15?'This is outside your usual positive-feedback pattern.':'Your feedback is neutral-to-positive for this combination.'});
+    return out;
   },
   generateOutfit(){
-    const ranked=this.rankedGarmentsForGenerator(),pick=cats=>ranked.find(g=>cats.includes(g.category));
-    const picks=[pick(TOP_CATS),pick(BOTTOM_CATS),pick(SHOE_CATS),pick(OUTER_CATS),pick(ACCESSORY_CATS)].filter(Boolean);
-    this.generatedLook=[...new Map(picks.map(g=>[g.id,g])).values()]; this.generatedScore=this.outfitCompatibility(this.generatedLook,this.generator.season,this.generator.occasion).total;
-    const tags=this.weatherTags;this.generatedReasons=[`${this.generator.season} / ${this.generator.occasion}`,tags.length?`Weather: ${tags.join(', ')}`:'Weather neutral','Rotation-aware','Preference-weighted'];
+    this.generationNonce++;const ranked=this.rankedGarmentsForGenerator(),used=[],picks=[];this.generatedLook=[];
+    for(const cats of [TOP_CATS,BOTTOM_CATS,SHOE_CATS,OUTER_CATS,ACCESSORY_CATS]){const g=this.chooseForMode(cats,ranked,used);if(g){picks.push(g);used.push(g.id);this.generatedLook=[...picks];}}
+    this.generatedLook=[...new Map(picks.map(g=>[g.id,g])).values()];this.generatedScore=this.outfitCompatibility(this.generatedLook,this.generator.season,this.generator.occasion).total;
+    const tags=this.weatherTags;this.generatedReasons=[`${this.generator.season} / ${this.generator.occasion}`,`${this.generator.mode} MODE`,tags.length?`Weather: ${tags.join(', ')}`:'Weather neutral','Rotation-aware','Preference-weighted'];this.generatedExplanation=this.buildRecommendationExplanation(this.generatedLook);
+  },
+  openReplacement(g){this.replaceTargetId=g.id;this.replacementModal=true;},
+  get replacementTarget(){return this.generatedLook.find(g=>g.id===this.replaceTargetId)||null;},
+  get replacementCandidates(){
+    const target=this.replacementTarget;if(!target)return[];const role=this.garmentRole(target),rest=this.generatedLook.filter(g=>g.id!==target.id),used=new Set(rest.map(g=>g.id));
+    return this.rankedGarmentsForGenerator().filter(g=>this.garmentRole(g)===role&&!used.has(g.id)&&g.id!==target.id).map(g=>({g,score:this.outfitCompatibility([...rest,g],this.generator.season,this.generator.occasion).total,fit:this.fitAssessment(g)})).sort((a,b)=>b.score-a.score).slice(0,12);
+  },
+  garmentRole(g){if(TOP_CATS.includes(g.category))return'TOP';if(BOTTOM_CATS.includes(g.category))return'BOTTOM';if(SHOE_CATS.includes(g.category))return'SHOES';if(OUTER_CATS.includes(g.category))return'OUTER';if(ACCESSORY_CATS.includes(g.category))return'ACCESSORY';return g.category;},
+  replaceGeneratedGarment(id){const g=this.garments.find(x=>x.id===id),i=this.generatedLook.findIndex(x=>x.id===this.replaceTargetId);if(!g||i<0)return;this.generatedLook.splice(i,1,g);this.generatedLook=[...this.generatedLook];this.generatedScore=this.outfitCompatibility(this.generatedLook,this.generator.season,this.generator.occasion).total;this.generatedExplanation=this.buildRecommendationExplanation(this.generatedLook);this.replacementModal=false;this.toast(`${g.name} substituted`);},
+  get bodyProfileComplete(){const p=this.prefs.bodyProfile||{};return !!(p.chest||p.waist||p.inseam||p.sleeve);},
+  fitAssessment(g){
+    const p=this.prefs.bodyProfile||{};let score=100,notes=[];const cat=g.category;
+    if(!this.bodyProfileComplete)return{score:null,label:'Add fit profile',notes:['Body measurements are not configured.']};
+    if((TOP_CATS.includes(cat)||OUTER_CATS.includes(cat))&&p.chest&&g.measureChest){const ease=g.measureChest-p.chest,ideal=OUTER_CATS.includes(cat)?14:10;if(ease<4){score-=35;notes.push('chest may be tight');}else if(ease>24){score-=20;notes.push('very relaxed chest');}else if(Math.abs(ease-ideal)<=5)notes.push('chest ease looks good');}
+    if(BOTTOM_CATS.includes(cat)&&p.waist&&g.measureWaist){const d=g.measureWaist-p.waist;if(d<-1){score-=35;notes.push('waist may be tight');}else if(d>8){score-=25;notes.push('waist likely loose');}else notes.push('waist close to profile');}
+    if(BOTTOM_CATS.includes(cat)&&p.inseam&&g.measureInseam){const d=g.measureInseam-p.inseam;if(Math.abs(d)>3){score-=18;notes.push(d>0?'inseam runs long':'inseam runs short');}else notes.push('inseam close to profile');}
+    if((TOP_CATS.includes(cat)||OUTER_CATS.includes(cat))&&p.sleeve&&g.measureSleeve){const d=g.measureSleeve-p.sleeve;if(Math.abs(d)>2.5){score-=16;notes.push(d>0?'sleeve may run long':'sleeve may run short');}else notes.push('sleeve close to profile');}
+    score=this.clamp(score,25,100);return{score,label:score>=90?'Likely close':score>=72?'Check proportions':score>=50?'Alteration likely':'Poor fit risk',notes:notes.length?notes:['Not enough garment measurements to compare.']};
   },
   ensureTodayRecommendation(force=false){
     if(!this.isInitialised)return; const p=this.todayPlan;
-    if(p&&!force){const o=this.outfits.find(x=>x.id===p.outfitId);if(o){this.generatedLook=this.outfitGarments(o);this.generatedScore=this.outfitCompatibility(this.generatedLook,this.outfitSeason(o),o.occasion||this.generator.occasion).total;return;}}
+    if(p&&!force){const o=this.outfits.find(x=>x.id===p.outfitId);if(o){this.generatedLook=this.outfitGarments(o);this.generatedScore=this.outfitCompatibility(this.generatedLook,this.outfitSeason(o),o.occasion||this.generator.occasion).total;this.generatedReasons=['PLANNED LOOK',`${this.outfitSeason(o)} / ${o.occasion||this.generator.occasion}`];this.generatedExplanation=this.buildRecommendationExplanation(this.generatedLook);return;}}
     this.generator.season=this.currentSeason();this.generator.occasion=this.prefs.defaultOccasion||'WORK';this.generateOutfit();
   },
   useGeneratedInBuilder(){ this.builderSelected=this.generatedLook.map(g=>g.id);this.builderSeason=this.generator.season;this.builderOccasion=this.generator.occasion;this.currentView='builder'; },
@@ -382,7 +432,7 @@ return {
   },
   exportPlannerICS(){
     const esc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n');
-    const rows=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The Archive//Wardrobe OS v11//EN','CALSCALE:GREGORIAN'];
+    const rows=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The Archive//Wardrobe OS v12//EN','CALSCALE:GREGORIAN'];
     this.plans.forEach(p=>{const d=(p.date||'').replaceAll('-','');if(!d)return;rows.push('BEGIN:VEVENT',`UID:${p.id}@the-archive`,`DTSTART;VALUE=DATE:${d}`,`SUMMARY:${esc('Outfit · '+this.getOutfitName(p.outfitId))}`,`DESCRIPTION:${esc(p.note||'Planned in The Archive')}`,'END:VEVENT');});
     rows.push('END:VCALENDAR');this.downloadText(`archive-outfits-${this.today()}.ics`,rows.join('\r\n'),'text/calendar');
   },

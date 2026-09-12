@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icon.svg">
-<title>The Archive · Wardrobe Intelligence</title>
+<title>The Archive · Wardrobe Intelligence v12</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -22,8 +22,22 @@
 </head>
 <body class="bg-grid scan" x-data="wardrobeApp()" x-init="initData()">
 <div class="shell px-3 md:px-8 py-5 md:py-8">
+  <!-- Wardrobe Intelligence v12 -->
 
   <div x-show="toastText" x-transition class="toast" x-text="toastText"></div>
+
+
+  <!-- MORNING MODE -->
+  <div x-show="morningMode" x-cloak class="morning-overlay">
+    <div class="morning-shell">
+      <div class="flex items-start justify-between gap-4"><div><div class="eyebrow">Morning mode</div><h2 class="serif text-4xl md:text-6xl text-stone-100 mt-1">What to wear</h2><div class="text-sm muted mt-2" x-text="weather.status==='ready'?`${Math.round(weather.temp)}°C · ${weather.condition} · ${generator.occasion}`:`${generator.occasion} · ${generator.season}`"></div></div><button class="icon-btn" @click="closeMorningMode()">×</button></div>
+      <div class="mode-switch mt-5"><template x-for="m in ['SAFE','BALANCED','EXPERIMENTAL']" :key="m"><button class="btn" :class="generator.mode===m?'btn-primary':''" @click="setRecommendationMode(m)" x-text="m"></button></template></div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6"><template x-for="g in generatedLook" :key="g.id"><div class="card p-2"><div class="thumb cutout"><template x-if="g.cutoutImage||g.image"><img :src="g.cutoutImage||g.image"></template><template x-if="!g.cutoutImage&&!g.image"><div class="photo-placeholder" x-text="g.name.slice(0,1)"></div></template></div><div class="serif text-base mt-2" x-text="g.name"></div><button class="mini-action mt-2" @click="openReplacement(g)">Replace</button></div></template></div>
+      <div class="card-soft p-4 mt-5"><div class="label">Why this look</div><template x-for="x in generatedExplanation" :key="x.title"><div class="reason-row"><strong x-text="x.title"></strong><span x-text="x.text"></span></div></template></div>
+      <div class="grid sm:grid-cols-2 gap-3 mt-5"><button class="btn btn-primary morning-primary" :disabled="!generatedLook.length" @click="markGeneratedWorn()">Wore this</button><button class="btn morning-primary" @click="generateOutfit()">Another look</button></div>
+      <div class="flex flex-wrap gap-2 mt-3"><button class="btn" @click="currentView='today';closeMorningMode()">Full Today view</button><button class="btn" @click="locateWeather()">Refresh weather</button><button class="btn" @click="openFitProfile()">Fit profile</button></div>
+    </div>
+  </div>
 
   <!-- GARMENT MODAL -->
   <div x-show="garmentModal" x-cloak class="fixed inset-0 z-[120] modal-bg flex items-center justify-center p-2" @keydown.escape.window="garmentModal=false">
@@ -55,7 +69,7 @@
           <label><span class="label">Care interval · days</span><input class="field mt-1" type="number" min="0" x-model.number="garmentDraft.careIntervalDays"></label>
           <label><span class="label">Care action</span><input class="field mt-1" x-model="garmentDraft.careAction" placeholder="Polish leather"></label>
           <label class="md:col-span-2 flex items-center gap-3 card-soft p-3"><input type="checkbox" x-model="garmentDraft.waterproof"><span><span class="label block">Weather protection</span><span class="text-xs">Waterproof / rain-suitable</span></span></label>
-          <label class="md:col-span-2"><span class="label">Fit / tailoring record</span><input class="field mt-1" x-model="garmentDraft.fit" placeholder="Sleeves shortened 2 cm · 2026"></label>
+          <div class="md:col-span-2 card-soft p-3"><div class="label">Garment measurements · cm</div><div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2"><input class="field" type="number" x-model.number="garmentDraft.measureChest" placeholder="Chest circumference"><input class="field" type="number" x-model.number="garmentDraft.measureWaist" placeholder="Waist circumference"><input class="field" type="number" x-model.number="garmentDraft.measureInseam" placeholder="Inseam"><input class="field" type="number" x-model.number="garmentDraft.measureSleeve" placeholder="Sleeve"><input class="field" type="number" x-model.number="garmentDraft.measureShoulder" placeholder="Shoulder"><input class="field" type="number" x-model.number="garmentDraft.measureLength" placeholder="Length"></div><div class="text-xs mt-2" x-show="editingGarmentId"><span class="pill" x-text="fitAssessment(garmentDraft).label"></span><span class="muted ml-2" x-text="fitAssessment(garmentDraft).notes.join(' · ')"></span></div></div><label class="md:col-span-2"><span class="label">Fit / tailoring record</span><input class="field mt-1" x-model="garmentDraft.fit" placeholder="Sleeves shortened 2 cm · 2026"></label>
           <label class="md:col-span-2"><span class="label">Care instructions</span><input class="field mt-1" x-model="garmentDraft.care"></label>
           <label class="md:col-span-2"><span class="label">Tags</span><input class="field mt-1" x-model="garmentDraft.tagsText" placeholder="WORK, DATE, RAIN, 1950S, AVANT-GARDE"></label>
           <label class="md:col-span-2"><span class="label">Notes</span><textarea class="field mt-1" rows="3" x-model="garmentDraft.notes"></textarea></label>
@@ -68,6 +82,20 @@
   <!-- OUTFIT MODAL -->
   <div x-show="outfitModal" x-cloak class="fixed inset-0 z-[120] modal-bg flex items-center justify-center p-2">
     <div class="modal-panel w-full max-w-xl p-5" @click.outside="outfitModal=false"><div class="flex justify-between"><div><div class="eyebrow">Builder</div><h2 class="section-title mt-1">Save look</h2></div><button class="icon-btn" @click="outfitModal=false">×</button></div><div class="grid gap-3 mt-5"><label><span class="label">Name</span><input class="field mt-1" x-model="outfitDraft.name"></label><label><span class="label">Description</span><textarea class="field mt-1" rows="3" x-model="outfitDraft.description"></textarea></label><div class="grid grid-cols-2 gap-3"><label><span class="label">Season</span><select class="field mt-1" x-model="outfitDraft.season"><template x-for="s in seasons"><option x-text="s"></option></template></select></label><label><span class="label">Occasion</span><select class="field mt-1" x-model="outfitDraft.occasion"><template x-for="o in occasions"><option x-text="o"></option></template></select></label></div><label><span class="label">Archetype</span><select class="field mt-1" x-model="outfitDraft.archetype"><option value="">—</option><template x-for="a in availableArchetypes"><option :value="a" x-text="a"></option></template></select></label><div class="card-soft p-3"><div class="label">Suggested perfume</div><div class="serif text-lg mt-1" x-text="builderPerfume?.name||'No perfume profile yet'"></div></div><button class="btn btn-primary" @click="saveBuiltOutfit()">Archive outfit</button></div></div>
+  </div>
+
+
+  <!-- REPLACEMENT MATRIX -->
+  <div x-show="replacementModal" x-cloak class="fixed inset-0 z-[150] modal-bg flex items-center justify-center p-2" @keydown.escape.window="replacementModal=false">
+    <div class="modal-panel w-full max-w-4xl p-5 overflow-auto" style="max-height:94dvh" @click.outside="replacementModal=false">
+      <div class="flex justify-between gap-3"><div><div class="eyebrow">Replacement matrix</div><h2 class="section-title mt-1">Swap <span x-text="replacementTarget?.name||'piece'"></span></h2><p class="text-sm muted mt-2">Candidates keep the same wardrobe role and are ranked against the rest of this exact look.</p></div><button class="icon-btn" @click="replacementModal=false">×</button></div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-5"><template x-for="x in replacementCandidates" :key="x.g.id"><button class="card p-3 text-left replacement-card" @click="replaceGeneratedGarment(x.g.id)"><div class="flex gap-3"><div class="w-20 shrink-0"><div class="thumb cutout"><template x-if="x.g.cutoutImage||x.g.image"><img :src="x.g.cutoutImage||x.g.image"></template><template x-if="!x.g.cutoutImage&&!x.g.image"><div class="photo-placeholder" x-text="x.g.name.slice(0,1)"></div></template></div></div><div class="min-w-0"><div class="serif text-lg truncate" x-text="x.g.name"></div><div class="eyebrow mt-1" x-text="x.g.category"></div><div class="text-xs mt-2"><span class="pill" x-text="x.score+' match'"></span> <span class="pill" x-text="x.fit.label"></span></div></div></div></button></template><div x-show="!replacementCandidates.length" class="card-soft p-8 text-center muted sm:col-span-2 lg:col-span-3">No suitable substitute is currently available.</div></div>
+    </div>
+  </div>
+
+  <!-- FIT PROFILE -->
+  <div x-show="fitModal" x-cloak class="fixed inset-0 z-[150] modal-bg flex items-center justify-center p-2" @keydown.escape.window="fitModal=false">
+    <div class="modal-panel w-full max-w-3xl p-5 overflow-auto" style="max-height:94dvh" @click.outside="fitModal=false"><div class="flex justify-between"><div><div class="eyebrow">Fit profile</div><h2 class="section-title mt-1">Personal measurements</h2><p class="text-sm muted mt-2">Centimetres unless noted. These measurements stay in your Archive preferences and are used to flag likely fit/alteration issues.</p></div><button class="icon-btn" @click="fitModal=false">×</button></div><div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5"><label><span class="label">Height</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.height"></label><label><span class="label">Chest circumference</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.chest"></label><label><span class="label">Waist circumference</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.waist"></label><label><span class="label">Hip circumference</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.hips"></label><label><span class="label">Inseam</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.inseam"></label><label><span class="label">Sleeve</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.sleeve"></label><label><span class="label">Shoulder width</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.shoulder"></label><label><span class="label">Neck</span><input class="field mt-1" type="number" x-model.number="prefs.bodyProfile.neck"></label><label><span class="label">Shoe size</span><input class="field mt-1" x-model="prefs.bodyProfile.shoe"></label><label class="col-span-2 md:col-span-3"><span class="label">Fit notes</span><textarea class="field mt-1" rows="3" x-model="prefs.bodyProfile.notes" placeholder="Preferred trouser rise, shoulder preference, usual alterations…"></textarea></label></div><button class="btn btn-primary w-full mt-4" @click="saveFitProfile()">Save fit profile</button></div>
   </div>
 
   <!-- FEEDBACK MODAL -->
@@ -94,7 +122,7 @@
   <header class="mb-7 md:mb-10">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
       <div><div class="eyebrow">Personal sartorial operating system · v<span x-text="version"></span></div><h1 class="serif text-4xl md:text-6xl text-stone-100 tracking-tight mt-1">The Archive</h1><div class="status-strip mt-3 text-[11px] uppercase tracking-[.14em] text-stone-500"><span class="status-dot" :class="syncState==='cloud'?'cloud':''"></span><span x-text="storageStatus"></span></div></div>
-      <div class="flex flex-wrap gap-2 md:justify-end"><button class="btn" @click="openSync()">Sync</button><button class="btn" x-show="canInstall" @click="installApp()">Install</button><button class="btn btn-primary" @click="newGarment()">+ Garment</button></div>
+      <div class="flex flex-wrap gap-2 md:justify-end"><button class="btn btn-primary" @click="openMorningMode()">Morning</button><button class="btn" @click="openFitProfile()">Fit</button><button class="btn" @click="openSync()">Sync</button><button class="btn" x-show="canInstall" @click="installApp()">Install</button><button class="btn btn-primary" @click="newGarment()">+ Garment</button></div>
     </div>
     <div class="grid md:grid-cols-[1fr_320px] items-end gap-5 mt-5 border-t border-stone-800/80 pt-4"><nav class="topnav flex gap-6 mini-scroll"><template x-for="t in tabs" :key="t.id"><button class="tab" :class="currentView===t.id?'active':''" @click="currentView=t.id" x-text="t.label"></button></template></nav><input class="field" x-model="globalSearch" placeholder="Search the archive…"></div>
   </header>
@@ -104,12 +132,12 @@
     <section x-show="currentView==='today'" x-cloak>
       <div class="grid xl:grid-cols-[1.35fr_.65fr] gap-5">
         <div class="card p-5 md:p-7">
-          <div class="flex flex-wrap items-start justify-between gap-4"><div><div class="eyebrow">Daily protocol</div><h2 class="section-title mt-1">Today</h2><p class="text-sm muted mt-2" x-text="todayPlan?'Your planner has an outfit assigned.':'The Archive is selecting from what is actually available.'"></p></div><div class="score-ring" :style="`--score:${generatedScore||0}`"><span x-text="generatedScore||0"></span></div></div>
+          <div class="flex flex-wrap items-start justify-between gap-4"><div><div class="eyebrow">Daily protocol</div><h2 class="section-title mt-1">Today</h2><p class="text-sm muted mt-2" x-text="todayPlan?'Your planner has an outfit assigned.':'The Archive is selecting from what is actually available.'"></p><div class="mode-switch mt-4"><template x-for="m in ['SAFE','BALANCED','EXPERIMENTAL']" :key="m"><button class="btn" :class="generator.mode===m?'btn-primary':''" @click="setRecommendationMode(m)" x-text="m"></button></template></div></div><div class="score-ring" :style="`--score:${generatedScore||0}`"><span x-text="generatedScore||0"></span></div></div>
           <div class="grid md:grid-cols-[1fr_230px] gap-5 mt-6">
             <div>
-              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"><template x-for="g in generatedLook" :key="g.id"><div class="card-soft p-2"><div class="thumb cutout"><template x-if="g.cutoutImage||g.image"><img :src="g.cutoutImage||g.image"></template><template x-if="!g.cutoutImage&&!g.image"><div class="photo-placeholder" x-text="g.name.slice(0,1)"></div></template></div><div class="serif text-sm mt-2 text-stone-100" x-text="g.name"></div><div class="eyebrow mt-1" x-text="g.category"></div></div></template></div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"><template x-for="g in generatedLook" :key="g.id"><div class="card-soft p-2"><div class="thumb cutout"><template x-if="g.cutoutImage||g.image"><img :src="g.cutoutImage||g.image"></template><template x-if="!g.cutoutImage&&!g.image"><div class="photo-placeholder" x-text="g.name.slice(0,1)"></div></template></div><div class="serif text-sm mt-2 text-stone-100" x-text="g.name"></div><div class="eyebrow mt-1" x-text="g.category"></div><button class="mini-action mt-2 w-full" @click="openReplacement(g)">Replace</button></div></template></div>
               <div x-show="!generatedLook.length" class="card-soft p-8 text-center muted mt-3">Add garments to start receiving daily outfits.</div>
-              <div class="flex flex-wrap gap-2 mt-4"><template x-for="r in generatedReasons" :key="r"><span class="pill" x-text="r"></span></template></div>
+              <div class="flex flex-wrap gap-2 mt-4"><template x-for="r in generatedReasons" :key="r"><span class="pill" x-text="r"></span></template></div><div class="card-soft p-4 mt-4"><div class="label">Why this look</div><template x-for="x in generatedExplanation" :key="x.title"><div class="reason-row"><strong x-text="x.title"></strong><span x-text="x.text"></span></div></template></div>
               <div class="flex flex-wrap gap-2 mt-5"><button class="btn btn-primary" :disabled="!generatedLook.length" @click="markGeneratedWorn()">Wore this</button><button class="btn" @click="generateOutfit()">Another look</button><button class="btn" :disabled="!generatedLook.length" @click="useGeneratedInBuilder()">Open in builder</button><button class="btn" :disabled="!generatedLook.length" @click="openFeedbackForGenerated(1)">Teach +</button><button class="btn btn-danger" :disabled="!generatedLook.length" @click="openFeedbackForGenerated(-1)">Teach −</button></div>
             </div>
             <aside class="space-y-3">
