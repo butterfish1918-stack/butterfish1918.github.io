@@ -1,17 +1,21 @@
 {
   "name": "Music Sketch",
   "short_name": "Music Sketch",
-  "description": "Mobile-first composition sketchbook with tracker, all-track arrangement overview, harmony-aware bass suggestions, space-aware drum suggestions, MIDI and MusicXML.",
+  "description": "Offline-first music composition sketchbook with advanced notation, all-track tracker, deep scale/chord lab, pattern variation, vocal phonetics, arrangement-aware bass/drum guidance, ABC, MIDI and MusicXML.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0b0d11",
   "theme_color": "#0b0d11",
   "icons": [
     {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
