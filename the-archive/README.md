@@ -4,7 +4,7 @@ Mobile/PWA build of **The Archive** for GitHub Pages and Android.
 
 ## Live app
 
-`https://butterfish1918-stack.github.io/the-archive/`
+`https://butterfish1918-stack.github.io/butterfish1918.github.io/the-archive/`
 
 ## Android
 
