@@ -1,5 +1,5 @@
 (async () => {
-  const BUILD = '7';
+  const BUILD = '8';
   const root = document.getElementById('root');
 
   const fail = (message, detail = '') => {
@@ -40,7 +40,6 @@
     }
 
     const source = chunks.join('');
-    // This source is precompiled ES2019 JavaScript. No Babel/runtime JSX compiler is used.
     new Function(`${source}\n//# sourceURL=heliocentric-app-v${BUILD}.js`)();
   } catch (error) {
     fail('Startup failed', error && (error.stack || error.message) ? (error.stack || error.message) : String(error));
