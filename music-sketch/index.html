@@ -7,12 +7,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" />
-<title>Music Sketch 0.6</title>
+  <title>Music Sketch 0.7</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">♪</span><span>Music Sketch</span><small>0.6</small></div>
+      <div class="brand"><span class="brand-mark">♪</span><span>Music Sketch</span><small>0.7</small></div>
       <div class="song-switcher">
         <button id="libraryBtn" class="top-quiet" title="Project library">☰ Library</button>
         <select id="songSelect" aria-label="Choose song"></select>
@@ -140,14 +140,33 @@
             </div>
           </section>
 
+          <section class="arrangement-assistant card">
+            <div class="section-heading compact"><div><strong>Arrangement assistant</strong><span>Live, non-destructive suggestions derived from the other tracks.</span></div><span id="assistantStatus" class="assistant-status">Analysing arrangement…</span></div>
+            <div class="assistant-grid">
+              <div class="assistant-panel bass-assistant">
+                <div><b>Bass guide</b><small>Roots and core fifths inferred from chord symbols, simultaneous harmony and arpeggios.</small></div>
+                <div id="bassSuggestionSummary" class="assistant-summary">No harmony analysed yet.</div>
+                <div class="assistant-actions"><button id="applyBassSuggestionsBtn">＋ Apply bass suggestions</button><button id="createBassSuggestionsBtn">＋ Create bass track + apply</button></div>
+              </div>
+              <div class="assistant-panel drum-assistant">
+                <div><b>Drum guide</b><small>Space-aware kick, snare and hi-hat suggestions based on attack density across all musical tracks.</small></div>
+                <div id="drumSuggestionSummary" class="assistant-summary">No groove analysed yet.</div>
+                <div class="assistant-actions"><button id="applyDrumSuggestionsBtn">＋ Apply drum suggestions</button><button id="createDrumSuggestionsBtn">＋ Create drum track + apply</button></div>
+              </div>
+            </div>
+            <div class="assistant-legend"><span><i class="legend-suggestion"></i>Suggested / not yet written</span><span><i class="legend-actual"></i>Existing music</span><span>Suggestions update automatically as the arrangement changes.</span></div>
+          </section>
+
           <section class="editor card">
             <div class="editor-tabs">
-              <button id="staffTab" class="active">Staff</button><button id="rollTab">Piano roll</button><button id="drumTab">Drums</button>
+              <button id="overviewTab" class="active">Overview</button><button id="trackerTab">Tracker</button><button id="staffTab">Staff</button><button id="rollTab">Piano roll</button><button id="drumTab">Drums</button>
               <div class="measure-actions"><span>Measure</span><button id="selectMeasureBtn">□ Select</button><button id="copyMeasureBtn">⧉ Copy</button><button id="pasteMeasureBtn">⎘ Paste</button><button id="selectFromHereBtn">⇥ From here</button><button id="insertBeforeBtn">＋ Before</button><button id="insertMeasureBtn">＋ After</button><button id="duplicateMeasureBtn">⧉ Duplicate</button><button id="clearMeasureBtn">⌫ Clear</button><button id="removeMeasureBtn">− Remove</button></div>
               <label class="wrap-control"><span>Wrap</span><select id="wrapSelect"><option value="2">2 bars</option><option value="4" selected>4 bars</option><option value="6">6 bars</option><option value="8">8 bars</option></select></label>
               <span class="hint">Drag notes • edge handle changes length • arrows nudge • click ruler to seek</span>
             </div>
-            <div id="staffContainer" class="svg-scroll"></div>
+            <div id="overviewContainer" class="overview-wrap"></div>
+            <div id="trackerContainer" class="tracker-wrap hidden"></div>
+            <div id="staffContainer" class="svg-scroll hidden"></div>
             <div id="rollContainer" class="svg-scroll roll-wrap hidden"></div>
             <div id="drumContainer" class="drum-wrap hidden"></div>
           </section>
@@ -175,11 +194,12 @@
       <div id="libraryGrid" class="library-grid"></div>
     </div>
   </div>
+
   <script>
   (async()=>{
     const unpack=async data=>{const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0));const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return new TextDecoder().decode(await new Response(stream).arrayBuffer());};
     try{
-      const [css,...parts]=await Promise.all([fetch('./payload/styles.txt').then(r=>r.text()),fetch('./payload/app1.txt').then(r=>r.text()),fetch('./payload/app2.txt').then(r=>r.text()),fetch('./payload/app3.txt').then(r=>r.text())]);
+      const [css,...parts]=await Promise.all([fetch('./payload/v07-styles.txt').then(r=>r.text()),fetch('./payload/v07-app1.txt').then(r=>r.text()),fetch('./payload/v07-app2.txt').then(r=>r.text()),fetch('./payload/v07-app3.txt').then(r=>r.text()),fetch('./payload/v07-app4.txt').then(r=>r.text())]);
       const style=document.createElement('style');style.textContent=await unpack(css.trim());document.head.appendChild(style);
       const js=await unpack(parts.join('').replace(/\s/g,''));const url=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));const script=document.createElement('script');script.src=url;script.onload=()=>URL.revokeObjectURL(url);document.body.appendChild(script);
     }catch(error){console.error(error);document.body.insertAdjacentHTML('beforeend','<p style="padding:20px;color:white">Music Sketch could not start in this browser.</p>');}
