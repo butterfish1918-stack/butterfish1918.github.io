@@ -1,7 +1,7 @@
 {
-  "name": "The Archive · Antwerp Edition",
+  "name": "The Archive · Wardrobe OS",
   "short_name": "The Archive",
-  "description": "A mobile sartorial and olfactory taxonomy archive.",
+  "description": "Personal wardrobe, outfit, wear-history, planning and olfactory operating system.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -9,6 +9,7 @@
   "orientation": "any",
   "background_color": "#121110",
   "theme_color": "#121110",
+  "categories": ["lifestyle", "utilities"],
   "icons": [
     { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
