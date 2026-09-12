@@ -156,4 +156,4 @@
         if (inPlayGap) {
           setIsPlaying(v => !v);
         } else {
-          const mParams = ['bpm', 'masterVol', 'elasticity
+          const mParams = ['bpm', 'masterVol', 'elasticity', 'entropy', 'harmonicMorph', 'rootFreq', 'feedbackIntensity'];
