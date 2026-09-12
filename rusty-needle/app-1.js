@@ -118,8 +118,8 @@ const abcjs = window.ABCJS;
             renderArchiveUI();
         };
 
-        // GitHub Pages / Android boot path: no injected backend required.
-        syncArchive();
+        // GitHub Pages / Android boot path: wait until all split scripts are loaded.
+        window.addEventListener('DOMContentLoaded', syncArchive, { once: true });
 
         abcInput.addEventListener('input', () => {
             if(titleInput.value.trim() === '') {
