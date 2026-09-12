@@ -1,0 +1,100 @@
+
+                            <option value="vinyl">1970s Vinyl</option>
+                        </select>
+                    </div>
+                    <div class="control-block">
+                        <label id="rootLabel">Root/Karar</label>
+                        <select id="rootSelect"></select>
+                        <label id="scaleLabel">Scale/Maqam</label>
+                        <select id="scaleSelect"></select>
+                    </div>
+                    <div class="control-block">
+                        <label>Tempo <span id="tempoDisp" class="val-disp">120</span></label>
+                        <input type="range" id="tempoSlider" min="40" max="220" value="120">
+                        <label>Gen Bias <span id="moodDisp" class="val-disp">50</span>%</label>
+                        <input type="range" id="moodSlider" min="0" max="100" value="50">
+                    </div>
+                    <div class="control-block">
+                        <label>Playback Mode</label>
+                        <select id="playbackMode"><option value="sequencer">Sequencer</option><option value="generative" selected>Generative Brain</option></select>
+                        <label>Temperament</label>
+                        <select id="tempSelect" class="global-mode-select"></select>
+                    </div>
+                    <div class="control-block" id="drumMatrixControls" style="display:none;">
+                        <label>Rhythm Type</label>
+                        <select id="rhythmStyleSelect"></select>
+                        <label>Sync Status</label>
+                        <div class="status-note">SEQUENCER INTEGRATED</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mixer-shell panel-surface">
+                <div class="section-head compact">
+                    <div>
+                        <div class="eyebrow">Sound stage</div>
+                        <h2>MIXER / PERFORMANCE</h2>
+                    </div>
+                    <p>Balance parts on the front, then flip to detailed performance calibration for the selected instrument.</p>
+                </div>
+                <div class="mixer-container">
+                    <div class="mixer-card" id="globalMixerCard">
+                        <div class="mixer-front" id="mixerFront"></div>
+                        <div class="mixer-back" id="mixerBack">
+                            <div class="perf-header">
+                                <span id="perfInstrumentTitle">CALIBRATION</span>
+                                <button class="row-action-btn" onclick="flipMixerCard()">↲ FLIP BACK</button>
+                            </div>
+                            <div id="singingExtraControls" class="voice-controls" style="display:none;">
+                                <label>Vocal Engine</label>
+                                <div class="voice-selects">
+                                    <select id="singingModeSelect">
+                                        <option value="choir">ENSEMBLE CHOIR</option>
+                                        <option value="voice">FORMANT VOICE</option>
+                                    </select>
+                                    <select id="vocalPhonemeSelect">
+                                        <option value="ah">AH (WORD 1)</option>
+                                        <option value="oh">OH (WORD 2)</option>
+                                        <option value="ee">EE (WORD 3)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="perf-grid-area" id="perfGridArea"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="sequencer-shell panel-surface" id="seqContainer">
+            <div class="section-head compact">
+                <div>
+                    <div class="eyebrow">Step editor</div>
+                    <h2>128-STEP PERFORMANCE SEQUENCER</h2>
+                </div>
+                <p>Choose a lane, pick notes or drum voices from the palette, then stamp patterns into the sequencer grid.</p>
+            </div>
+
+            <div id="trackTabs" class="track-tabs-row">
+                <div class="track-tab drums" id="tab-drums" onclick="setEditTrack('drums')">DRUMS</div>
+                <div class="track-tab active" id="tab-lead" onclick="setEditTrack('lead')">LEAD</div>
+                <div class="track-tab" id="tab-bass" onclick="setEditTrack('bass')">BASS</div>
+                <div class="track-tab" id="tab-brass" onclick="setEditTrack('brass')">BRASS</div>
+                <div class="track-tab" id="tab-strings" onclick="setEditTrack('strings')">STRINGS</div>
+                <div class="track-tab" id="tab-pluck" onclick="setEditTrack('pluck')">PLUCK</div>
+                <div class="track-tab" id="tab-chords" onclick="setEditTrack('chords')">CHRDS</div>
+                <div class="track-tab" id="tab-drone" onclick="setEditTrack('drone')">DRONE</div>
+                <div class="track-tab" id="tab-singing" onclick="setEditTrack('singing')">VOX</div>
+            </div>
+
+            <div id="inputPalette"></div>
+            <div id="sequencerGridArea"></div>
+        </section>
+
+        <footer class="status-display panel-surface">
+            <div class="status-chip">STEP <span id="beatDisp" class="val-disp">0</span></div>
+            <div class="status-chip">SIG <span id="sigDisp" class="val-disp">4/4</span></div>
+            <div class="status-chip long">MK LXI // MASTER BUS ARMED</div>
+        </footer>
+    </div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>

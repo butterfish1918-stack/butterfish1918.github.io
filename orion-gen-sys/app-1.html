@@ -1,0 +1,125 @@
+        <div class="workspace">
+        <header class="header-strip panel-surface">
+            <div class="title-block">
+                <div class="eyebrow">Generative Retro Synthesizer / Sequencer Workstation</div>
+                <h1>ORION GEN-SYS // MK LXI</h1>
+                <p class="subtitle">A polished control deck for scales, stochastic composition, live generation, step sequencing, project recall and MIDI export — keeping the original retro-futurist philosophy intact.</p>
+            </div>
+            <div class="header-controls-wrap">
+                <div class="quick-select-group">
+                    <div class="field-inline field-compact">
+                        <label for="tuningSelect">Tuning System</label>
+                        <select id="tuningSelect" class="global-mode-select"></select>
+                    </div>
+                    <div class="field-inline field-compact">
+                        <label for="globalModeSelect">Philosophy</label>
+                        <select id="globalModeSelect" class="global-mode-select">
+                            <option value="east">East Coast</option>
+                            <option value="west">West Coast</option>
+                            <option value="berlin">Berlin School</option>
+                            <option value="french">French Spectralism</option>
+                            <option value="japanese">Japanese Precision</option>
+                            <option value="sheffield">Sheffield Industrial</option>
+                            <option value="chaos">Entropy Chaos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="header-action-row">
+                    <button class="icon-action" type="button" onclick="toggleSettingsOverlay()" aria-label="Open stochastic matrix">⚙ <span>Matrix</span></button>
+                    <button class="icon-action accent" type="button" onclick="randomiseAll()" aria-label="Randomise system">Ω <span>Randomise</span></button>
+                </div>
+            </div>
+        </header>
+
+        <div id="settingsOverlay" class="settings-overlay" style="display:none;">
+            <div class="overlay-scrim" onclick="toggleSettingsOverlay()"></div>
+            <div class="overlay-card panel-surface">
+                <div class="overlay-header">
+                    <div>
+                        <div class="eyebrow">Deep generative controls</div>
+                        <h2>STOCHASTIC MATRIX</h2>
+                    </div>
+                    <button class="overlay-close-btn" type="button" onclick="toggleSettingsOverlay()">Close</button>
+                </div>
+
+                <div class="overlay-grid">
+                    <div class="settings-field slider-field">
+                        <label for="randPitchVar">Pitch Variance</label>
+                        <div class="slider-readout-row">
+                            <input type="range" id="randPitchVar" min="0" max="1" step="0.01" value="0.5">
+                        </div>
+                    </div>
+
+                    <div class="settings-field slider-field">
+                        <label for="mutationRate">Mutation Rate</label>
+                        <div class="slider-readout-row">
+                            <input type="range" id="mutationRate" min="0" max="1" step="0.01" value="0.1">
+                        </div>
+                    </div>
+
+                    <div class="settings-field slider-field">
+                        <label for="evolveInterval">Evolution Lifespan</label>
+                        <div class="slider-readout-row with-badge">
+                            <input type="range" id="evolveInterval" min="4" max="128" step="4" value="16">
+                            <span id="evolveDisp" class="value-pill">16</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-field toggle-field">
+                        <label for="autoEvolveToggle">Auto Evolve</label>
+                        <div class="switch-row">
+                            <span>Enable continuous mutation</span>
+                            <input type="checkbox" id="autoEvolveToggle">
+                        </div>
+                    </div>
+
+                    <div class="settings-field full-span">
+                        <label for="moodSelect">Affective State / Mood</label>
+                        <select id="moodSelect">
+                            <option value="neutral">NEUTRAL (NO BIAS)</option>
+                            <option value="joy">JOY: PURE / HIGH VALENCE</option>
+                            <option value="sadness">SADNESS: REFLECTIVE / LOSS</option>
+                            <option value="anxiety">ANXIETY: HIGH AROUSAL / TENSION</option>
+                            <option value="calmness">CALMNESS: SERENE / LOW ENERGY</option>
+                            <option value="anger">ANGER: AGGRESSIVE / SHEFFIELD</option>
+                            <option value="awe">AWE: VAST / DIMINISHING</option>
+                            <option value="boredom">BOREDOM: DETACHED / FLAT</option>
+                            <option value="nostalgia">NOSTALGIA: BITTERSWEET / YEARNING</option>
+                            <option value="excitement">EXCITEMENT: ANTICIPATION / PRE-DROP</option>
+                            <option value="melancholy">MELANCHOLY: AESTHETICIZED SADNESS</option>
+                            <option value="amusement">AMUSEMENT: LIGHTHEARTED / WIT</option>
+                            <option value="defiance">DEFIANCE: RESISTANT / POWERFUL</option>
+                            <option value="dreaminess">DREAMINESS: ETHEREAL / DETACHED</option>
+                            <option value="triumph">TRIUMPH: VICTORY / PEAK</option>
+                            <option value="loneliness">LONELINESS: ISOLATION / PERVASIVE</option>
+                            <option value="romance">ROMANCE: INTIMACY / DESIRE</option>
+                            <option value="confusion">CONFUSION: DISSONANT / CHAOTIC</option>
+                            <option value="fear">FEAR: THREAT / SURVIVAL</option>
+                            <option value="contentment">CONTENTMENT: PEACEFUL / PRESENT</option>
+                            <option value="frustration">FRUSTRATION: BLOCKED / STUCK</option>
+                            <option value="disgust">DISGUST: AVERSION / UGLY</option>
+                            <option value="hope">HOPE: POSITIVE / FUTURE</option>
+                            <option value="guilt">GUILT: HEAVY / SELF-REPROACH</option>
+                            <option value="aesthetic">AESTHETIC APPRECIATION: BEAUTY</option>
+                            <option value="aggression">AGGRESSION: RAW / PROACTIVE</option>
+                        </select>
+                    </div>
+
+                    <div class="settings-field full-span">
+                        <label for="vibeSelect">Atmosphere / Vibe</label>
+                        <select id="vibeSelect">
+                            <option value="neutral">NEUTRAL (NO BIAS)</option>
+                            <option value="cinematic">CINEMATIC: GRAND / WIDESCREEN</option>
+                            <option value="gaming">VIDEO GAME: CHIPTUNE / 8-BIT</option>
+                            <option value="trailer">TRAILER: HIGH IMPACT / EPIC</option>
+                            <option value="noir">NOIR: DARK / SMOKY</option>
+                            <option value="documentary">DOCUMENTARY: MINIMALIST / FACTUAL</option>
+                            <option value="horror">HORROR: DISSONANT / TENSION</option>
+                            <option value="club">CLUB: PEAK TIME / HIGH ENERGY</option>
+                            <option value="lounge">LOUNGE: SOPHISTICATED / BACKGROUND</option>
+                            <option value="festival">FESTIVAL: ANTHEMIC / HANDS-UP</option>
+                            <option value="afterhours">AFTER-HOURS: DEEP / HYPNOTIC</option>
+                            <option value="underground">UNDERGROUND: RAW / ANTI-COMMERCIAL</option>
+                            <option value="poolside">POOLSIDE: SUNNY / TROPICAL</option>
+                            <option value="lofi">LO-FI: MUFFLED / NOSTALGIC</option>
+                            <option value="synthwave">SYNTHWAVE: RETRO-FUTURE / NEON</option>
