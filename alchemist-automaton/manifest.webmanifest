@@ -1,0 +1,20 @@
+{
+  "name": "The Alchemist's Automaton",
+  "short_name": "Alchemist",
+  "description": "A visceral browser speech-synthesis and generative audio instrument.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050302",
+  "theme_color": "#050302",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icons/alchemist-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
