@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#101411" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="A playable systems prototype about survival, imperfect information and bureaucratic triage." />
+  <title>The Winter Registry — Prototype</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="grain" aria-hidden="true"></div>
+
+  <main id="app">
+    <section id="titleScreen" class="screen active">
+      <div class="title-card panel-heavy">
+        <div class="stamp">MUNICIPAL SURVIVAL DIRECTORATE · FILE 7-Б</div>
+        <h1>THE WINTER<br><span>REGISTRY</span></h1>
+        <p class="subtitle">An administrative survival prototype</p>
+        <p class="lede">Thirty people. One frozen district. Twelve hours to gather what you can. Six hours to decide who receives it.</p>
+        <div class="title-actions">
+          <button id="newGameBtn" class="primary">Open a New File</button>
+          <button id="continueBtn" class="secondary" disabled>Continue Previous File</button>
+          <button id="installBtn" class="ghost hidden">Install on Device</button>
+        </div>
+        <div class="title-notes">
+          <span>Prototype build 0.1</span><span>Touch + mouse</span><span>Offline save</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <header class="topbar">
+        <div class="brand-block">
+          <strong>THE WINTER REGISTRY</strong>
+          <small id="phaseLabel">FIELD PHASE</small>
+        </div>
+        <div class="status-strip">
+          <div><span>DAY</span><b id="dayLabel">01</b></div>
+          <div><span>TIME</span><b id="timeLabel">06:00</b></div>
+          <div><span>ALIVE</span><b id="aliveLabel">30</b></div>
+          <div><span>SEED</span><b id="seedLabel">—</b></div>
+        </div>
+        <div class="top-actions">
+          <button id="audioBtn" class="icon-btn" aria-label="Toggle ambience">◌</button>
+          <button id="saveBtn" class="icon-btn" aria-label="Save">▣</button>
+        </div>
+      </header>
+
+      <section id="fieldView" class="mode-view active">
+        <div class="world-wrap">
+          <canvas id="world" aria-label="Isometric district map"></canvas>
+          <div class="world-vignette"></div>
+          <div id="tapHint" class="tap-hint">Tap a marked site to inspect it</div>
+        </div>
+
+        <aside class="field-sidebar">
+          <div class="sidebar-section">
+            <div class="section-title">FIELD INVENTORY</div>
+            <div class="resource-grid">
+              <div><span>Nutrition</span><b id="foodStock">0</b></div>
+              <div><span>Heat</span><b id="heatStock">0</b></div>
+              <div><span>Medicine</span><b id="medStock">0</b></div>
+              <div><span>Scrap</span><b id="scrapStock">0</b></div>
+            </div>
+          </div>
+          <div class="sidebar-section">
+            <div class="section-title">FIELD NOTES</div>
+            <div id="fieldLog" class="field-log"></div>
+          </div>
+          <div class="sidebar-section controls-section">
+            <div class="section-title">CURRENT DIRECTIVE</div>
+            <p id="directiveText">Gather enough to make tonight's arithmetic survivable.</p>
+            <button id="returnBtn" class="primary wide">Return to Town Hall</button>
+          </div>
+        </aside>
+      </section>
+
+      <section id="ledgerView" class="mode-view">
+        <div class="ledger-shell">
+          <div class="ledger-head">
+            <div>
+              <div class="stamp dark">POPULATION LEDGER · PROVISIONAL DATA</div>
+              <h2>CALCULUS OF TRIAGE</h2>
+              <p>Requested allocations cannot exceed stock. Exact values are only visible for residents you have assessed.</p>
+            </div>
+            <div class="ledger-stock">
+              <div><span>NUTRITION</span><b id="ledgerFood">0</b></div>
+              <div><span>HEAT</span><b id="ledgerHeat">0</b></div>
+              <div><span>MEDICINE</span><b id="ledgerMed">0</b></div>
+            </div>
+          </div>
+
+          <div id="policyGrid" class="policy-grid"></div>
+
+          <div class="ledger-tools">
+            <input id="residentSearch" type="search" placeholder="Search resident / occupation" autocomplete="off" />
+            <select id="residentFilter">
+              <option value="all">All residents</option>
+              <option value="critical">Critical health</option>
+              <option value="dissent">High dissent</option>
+              <option value="known">Assessed in field</option>
+              <option value="mutated">Mutated</option>
+            </select>
+            <button id="autoMedicineBtn" class="secondary">Auto-triage medicine</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Resident</th><th>Role</th><th>Age</th><th>Condition</th><th>Dissent</th><th>Mutation</th><th>Food</th><th>Heat</th><th>Med</th>
+                </tr>
+              </thead>
+              <tbody id="residentRows"></tbody>
+            </table>
+          </div>
+
+          <div class="ledger-foot">
+            <div id="projectionText">Set ration policies.</div>
+            <div class="ledger-foot-actions">
+              <button id="backToFieldBtn" class="ghost">Return to Field</button>
+              <button id="sealLedgerBtn" class="danger">Seal Ledger & End Day</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="modalLayer" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div id="modalCard" class="modal-card"></div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="./game.js" defer></script>
+</body>
+</html>
