@@ -1,0 +1,15 @@
+{
+  "name": "The Archive · Antwerp Edition",
+  "short_name": "The Archive",
+  "description": "A mobile sartorial and olfactory taxonomy archive.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#121110",
+  "theme_color": "#121110",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
