@@ -1,0 +1,114 @@
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Spectral Tilt</td><td class="font-mono text-[#d4af37]">L(H1) - L(H2)</td><td class="font-mono text-[#a3e635] text-right">${avgTilt.toFixed(1)} dB</td></tr>
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Glottal Open Quotient</td><td class="font-mono text-[#d4af37]">OQ Proxy</td><td class="font-mono text-[#a3e635] text-right">${avgOQ.toFixed(2)}</td></tr>
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Phonation Efficiency</td><td class="font-mono text-[#d4af37]">Inertive $\eta$</td><td class="font-mono text-[#a3e635] text-right">${avgEff.toFixed(2)}</td></tr>
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Bifurcation (Chaos)</td><td class="font-mono text-[#d4af37]">{"$D_2$"} Grit Proxy</td><td class="font-mono text-[#a3e635] text-right">${avgGrit.toFixed(1)}</td></tr>
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Voice Onset Time</td><td class="font-mono text-[#d4af37]">VOT Latency</td><td class="font-mono text-[#a3e635] text-right">${latencyMs.toFixed(0)} ms</td></tr>
+          <tr class="border-b border-[#3e3324]"><td class="py-1 text-[#b8a078]">Jitter (Perturbation)</td><td class="font-mono text-[#d4af37]">Cycle-to-Cycle</td><td class="font-mono ${jitterPercent > 1.0 ? 'text-[#dc2626]' : 'text-[#a3e635]'} text-right">${jitterPercent.toFixed(2)}%</td></tr>
+          <tr><td class="py-1 text-[#b8a078]">Vibrato Profile</td><td class="font-mono text-[#d4af37]" colspan="2">${vibratoMsg}</td></tr>
+      </table>
+      ${voidStr}
+      ${lombardStr}
+    `;
+
+    setFeedback(finalFeedback + tableHTML);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-[#d4af37] p-4 md:p-8 font-sans selection:bg-[#a3e635] selection:text-[#000000] relative overflow-x-hidden">
+      
+      {/* CSS Overlays for Decayed Art Deco / Fallout Vibe */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&display=swap');
+        .font-deco { font-family: 'Oswald', sans-serif; letter-spacing: 0.1em; }
+        .grain-overlay {
+          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          pointer-events: none; z-index: 50; opacity: 0.25;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+          mix-blend-mode: overlay;
+        }
+        .cracks-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 49; opacity: 0.1;
+            background-image: radial-gradient(circle, transparent 20%, #000 100%), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.5) 10px, rgba(0,0,0,0.5) 11px);
+        }
+        .deco-god-bg {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 120vw; height: 120vh; pointer-events: none; z-index: 0; opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,10 80,40 80,90 50,70 20,90 20,40' fill='none' stroke='%23d4af37' stroke-width='1'/%3E%3Cpolygon points='50,30 65,50 65,75 50,60 35,75 35,50' fill='none' stroke='%23d4af37' stroke-width='0.5'/%3E%3Cline x1='50' y1='10' x2='50' y2='90' stroke='%23d4af37' stroke-width='0.5'/%3E%3C/svg%3E");
+            background-size: contain; background-position: center; background-repeat: no-repeat;
+            filter: blur(1px) drop-shadow(0 0 10px rgba(212,175,55,0.5));
+        }
+        .art-deco-border {
+          border: 2px solid #8b7355; padding: 4px; position: relative; background: #0a0a0a;
+          box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.9);
+        }
+        .art-deco-border::before {
+          content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+          border: 1px solid #5c4a3d; pointer-events: none;
+        }
+        .radium-text { color: #a3e635; text-shadow: 0 0 5px rgba(163, 230, 53, 0.5), 0 0 10px rgba(163, 230, 53, 0.3); }
+        .brass-text { color: #d4af37; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #050505; border: 1px solid #5c4a3d; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #8b7355; border: 1px solid #d4af37; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a3e635; border-color: #000; }
+        .deco-button {
+            background: linear-gradient(180deg, #1f1a14 0%, #0a0a0a 100%);
+            border: 1px solid #8b7355; box-shadow: inset 0 1px 0 rgba(212,175,55,0.2), 0 4px 6px rgba(0,0,0,0.6);
+            transition: all 0.1s;
+        }
+        .deco-button:active { transform: translateY(2px); box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); }
+        .deco-button:disabled { filter: grayscale(100%) opacity(0.5); }
+        .deco-button-radium {
+            background: linear-gradient(180deg, #2d3b14 0%, #0a0a0a 100%);
+            border-color: #a3e635; color: #a3e635;
+            box-shadow: inset 0 0 10px rgba(163,230,53,0.2), 0 4px 6px rgba(0,0,0,0.6);
+        }
+        .deco-button-danger {
+            background: linear-gradient(180deg, #3f0f0f 0%, #0a0a0a 100%);
+            border-color: #dc2626; color: #dc2626;
+            box-shadow: inset 0 0 10px rgba(220,38,38,0.2), 0 4px 6px rgba(0,0,0,0.6);
+        }
+      `}} />
+      
+      <div className="grain-overlay"></div>
+      <div className="cracks-overlay"></div>
+      <div className="deco-god-bg"></div>
+
+      {/* Manual Overlay (Architect's Codex) */}
+      {showManual && (
+         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#000000]/95 backdrop-blur-md p-4 md:p-8">
+            <div className="art-deco-border p-6 md:p-10 max-w-4xl w-full flex flex-col gap-6 relative max-h-[90vh] overflow-y-auto custom-scrollbar bg-[#050505]">
+               <div className="absolute top-0 right-0 p-4 z-10">
+                  <button onClick={() => setShowManual(false)} className="text-[#8b7355] font-bold font-deco hover:text-[#d4af37] transition-colors">[CLOSE CODEX]</button>
+               </div>
+               
+               <h2 className="text-2xl md:text-3xl font-deco brass-text mb-2 flex items-center gap-4 border-b border-[#5c4a3d] pb-4 uppercase tracking-widest">
+                  <BookOpen className="text-[#d4af37]" size={32} />
+                  The Architect's Codex
+               </h2>
+
+               <div className="space-y-6 text-sm font-mono text-[#b8a078] leading-relaxed">
+                  <p>
+                    Welcome to the Clinical Pitch Synthesiser. This is not a karaoke machine. It is a rigorous, unforgiving psychoacoustic laboratory designed to map the intervallic discipline, spectral purity, and biological degradation of the human vocal tract.
+                  </p>
+
+                  <div className="border-t border-[#5c4a3d] pt-4">
+                      <h3 className="text-lg font-deco text-[#a3e635] uppercase mb-2">1. The Epistemology of Tuning</h3>
+                      <p className="mb-2">
+                        Modern commercial music relies on 12-Tone Equal Temperament (12-TET)—a Victorian compromise that ensures every key is equally, mathematically out of tune. The Synthesiser rejects this compromise.
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                          <li><strong className="text-[#d4af37]">Just Intonation (5-Limit):</strong> Relies on pure whole-number ratios. A major third is a perfect 5:4.</li>
+                          <li><strong className="text-[#d4af37]">Quarter-Comma Meantone:</strong> The tuning of the Renaissance. Major thirds are pure, but certain "wolf" intervals are aggressively dissonant.</li>
+                          <li><strong className="text-[#d4af37]">Greek Enharmonic:</strong> An ancient tetrachord featuring clustered microtones (approximate quarter-tones) at the bottom of the scale. A severe test of pitch memory.</li>
+                      </ul>
+                  </div>
+
+                  <div className="border-t border-[#5c4a3d] pt-4">
+                      <h3 className="text-lg font-deco text-[#a3e635] uppercase mb-2">2. Physiological Telemetry</h3>
+                      <p className="mb-2">
+                        The fundamental frequency ($f_0$) is merely the pitch. The Synthesiser actively performs a Fast Fourier Transform (FFT) to rip apart your spectral envelope and judge the health of your glottis.
+                      </p>
+                      <ul className="list-disc pl-5 space-y-2">
+                          <li><strong className="text-[#d4af37]">Spectral Tilt ({"$L_{H1} - L_{H2}$"}):</strong> The decibel differential between your first two harmonics. A steep tilt indicates a "breathy" voice; a shallow or negative tilt indicates a "pressed" voice. This serves as our proxy for your <strong className="text-[#d4af37]">Glottal Open Quotient (OQ)</strong>. An OQ of ~0.50 is optimally efficient.</li>
