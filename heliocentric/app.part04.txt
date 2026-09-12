@@ -1,0 +1,106 @@
+addColorStop(0.6, `hsla(${(time * 0.05) % 360}, 50%, 40%, 0.8)`);
+    irisGrd.addColorStop(1, '#fff');
+    ctx.fillStyle = irisGrd;
+    ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+    // Inner detail
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5;
+    for(let a=0; a<8; a++) {
+      const ang = (a/8) * Math.PI * 2 + (time * 0.002);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang)*8, cy + Math.sin(ang)*8); ctx.stroke();
+    }
+    ctx.restore();
+
+    while (activeTriggersRef.current.length > 0) {
+      const trig = activeTriggersRef.current.pop();
+      const angle = (trig.step / STEPS) * Math.PI * 2;
+      for(let i=0; i<(trig.isLow ? 25 : 10); i++) {
+        particlesRef.current.push({ x: cx + Math.cos(angle)*coreR, y: cy + Math.sin(angle)*coreR, vx: -Math.cos(angle)*(trig.isLow ? 0.3 : 2.0)*Math.random(), vy: -Math.sin(angle)*(trig.isLow ? 0.3 : 2.0)*Math.random(), life: 1.0, decay: trig.isLow ? 0.004 : 0.015, color: trig.color, size: (trig.isLow ? 14 : 4)*(1+trig.intensity/5), blur: trig.blur, shrink: 1 + trig.pitchDepth });
+      }
+      const rEdge = coreR + trig.trackIndex * ringW;
+      for(let i=0; i<10; i++) auraParticlesRef.current.push({ x: cx + Math.cos(angle)*rEdge, y: cy + Math.sin(angle)*rEdge, vx: Math.cos(angle)*(2+Math.random()*3), vy: Math.sin(angle)*(2+Math.random()*3), life: 1.0, color: trig.color, size: 1+Math.random()*2 });
+    }
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI*2); ctx.clip();
+    particlesRef.current.forEach((p) => {
+      const dx = cx - p.x, dy = cy - p.y, dist = Math.sqrt(dx*dx + dy*dy);
+      p.vx += dx * (0.02 / (dist / 10 + 1)); p.vy += dy * (0.02 / (dist / 10 + 1));
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.98; p.vy *= 0.98; p.life -= (p.decay * p.shrink);
+      if (p.life > 0) { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.globalAlpha = p.life * (0.7 - p.blur * 0.3); ctx.fill(); }
+    });
+    particlesRef.current = particlesRef.current.filter(p => p.life > 0); ctx.restore();
+
+    for (let r = 0; r < TOTAL_TRACKS; r++) {
+      const radius = coreR + r * ringW + tracks[r].vibration * 4;
+      const isSelected = selectedTrack === r, isDimmed = selectedTrack !== null && !isSelected;
+      const baseColor = getTrackColor(r, isSelected ? 70 : 40, isSelected ? 100 : 70); 
+      if (tracks[r].vibration > 0) tracks[r].vibration *= 0.92;
+      ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.strokeStyle = baseColor; ctx.lineWidth = isSelected ? 3 : 1.5; ctx.globalAlpha = isDimmed ? 0.15 : 0.6; ctx.stroke();
+      for (let s = 0; s < STEPS; s++) {
+        if (tracks[r].pattern[s]) {
+          const isHit = isPlaying && Math.abs(stepProgress - s) < 0.22;
+          ctx.beginPath(); ctx.arc(cx, cy, radius + ringW - 1, (s/STEPS)*Math.PI*2, ((s+1)/STEPS)*Math.PI*2); ctx.arc(cx, cy, radius + 1, ((s+1)/STEPS)*Math.PI*2, (s/STEPS)*Math.PI*2, true); ctx.closePath();
+          ctx.fillStyle = getTrackColor(r, isHit ? 95 : 60, isSelected ? 100 : 85); ctx.globalAlpha = isHit ? 1.0 : (isDimmed ? 0.05 : 0.85); ctx.fill();
+        }
+      }
+    }
+
+    ctx.save();
+    for (let s = 0; s < STEPS; s++) {
+      const ang = (s / STEPS) * Math.PI * 2;
+      let d = Math.abs(stepProgress - s); if (d > STEPS / 2) d = Math.abs(d - STEPS);
+      const isGlowing = isPlaying && d < 0.25; 
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang)*coreR, cy + Math.sin(ang)*coreR); ctx.lineTo(cx + Math.cos(ang)*maxR, cy + Math.sin(ang)*maxR);
+      if (isGlowing) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.globalAlpha = 1.0; ctx.shadowBlur = 30; ctx.shadowColor = '#fff'; }
+      else { ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3; ctx.shadowBlur = 0; }
+      ctx.stroke();
+    }
+    if (isPlaying) {
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(radTheta) * maxR, cy + Math.sin(radTheta) * maxR);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.8; ctx.shadowBlur = 15; ctx.shadowColor = '#fff'; ctx.stroke();
+    }
+    ctx.restore();
+    requestRef.current = requestAnimationFrame(animate);
+  }, [isPlaying, tracks, selectedTrack, bpm, isDragging, masterVol, focusedParam, elasticity, entropy, harmonicMorph, rootFreq, feedbackIntensity, visualPersistence, auraZoom, geoPrimitive, randomiseEverything]);
+
+  useEffect(() => { requestRef.current = requestAnimationFrame(animate); return () => cancelAnimationFrame(requestRef.current); }, [animate]);
+
+  return (
+    <div className="app-shell">
+      {!isAudioStarted && (
+        <div className="audio-gate">
+          <div className="gate-card">
+            <h1 className="gate-title">Heliocentric</h1>
+            <p className="gate-subtitle">16-track generative rhythm engine</p>
+            <button type="button" onClick={initAudio} className="engage-button">Engage System</button>
+          </div>
+        </div>
+      )}
+
+      <canvas
+        ref={canvasRef}
+        className="main-canvas"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
+        onWheel={handleWheel}
+        style={{ touchAction: 'none' }}
+      />
+
+      <div className="status-panel">
+        <div className="status-row"><span className="status-icon">◉</span>{selectedTrack !== null ? `${getTrackLabel(selectedTrack)} SYNCED` : "AURA ENGINE STABLE"}</div>
+        <div className="status-row"><span className="status-icon">⌘</span>GEOMETRY: {geoPrimitive}-FOLD</div>
+      </div>
+
+      {isAudioStarted && (
+        <div className="transport-buttons" aria-label="Transport controls">
+          <button type="button" aria-label="Randomise system" onClick={randomiseEverything} className="float-button left-button">✦</button>
+          <button type="button" aria-label={isPlaying ? "Pause" : "Play"} onClick={() => setIsPlaying(v => !v)} className="float-button play-button">{isPlaying ? "Ⅱ" : "▶"}</button>
+          <button type="button" aria-label="Clear pattern" onClick={resetGrid} className="float-button right-button">↻</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
