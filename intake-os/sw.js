@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'intake-os-';
-const CACHE = `${CACHE_PREFIX}v3.0.1`;
+const CACHE = `${CACHE_PREFIX}v3.1.0`;
 const CORE = ['./', './index.html', './style.css', './data.js', './audio.js', './visuals.js', './app.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
