@@ -1,5 +1,5 @@
-const CACHE = 'clinical-pitch-synth-v2';
-const APP_SHELL = ['./', './index.html', './app-1.part', './app-2.part', './app-3.part', './app-4.part', './app-5.part', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'clinical-pitch-synth-v3';
+const APP_SHELL = ['./', './index.html', './app-1.part', './app-2.part', './app-3.part', './app-4a.part', './app-4b.part', './app-5a.part', './app-5b.part', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
