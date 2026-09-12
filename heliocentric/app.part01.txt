@@ -1,0 +1,159 @@
+     oscillator: { type: "sine" }, modulation: { type: "sine" },
+        envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.2 },
+        modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.5 }
+      });
+      const panner = new Tone.Panner(track.pan); 
+      const initialCutoff = 90 + Math.pow(track.cutoff, 2) * 9910;
+      const filter = new Tone.Filter(initialCutoff, i < 8 ? "lowpass" : "highpass");
+      filter.Q.value = 0.5 + track.filterQ * 9.5;
+      const vol = new Tone.Volume(-15);
+      const reverbSend = new Tone.Gain(track.reverbSend);
+      synth.chain(filter, panner, vol, Tone.Destination);
+      vol.connect(resonanceNode.current);
+      vol.connect(reverbSend);
+      reverbSend.connect(globalReverb.current);
+      return { synth, filter, vol, panner, reverbSend, baseFreq: rootFreq * RATIOS[i] };
+    });
+    synthRefs.current = newSynths;
+    Tone.Transport.stop();
+    Tone.Transport.position = 0;
+    Tone.Transport.loop = true;
+    Tone.Transport.loopEnd = "1m";
+    Tone.Transport.bpm.value = bpm;
+    setIsAudioStarted(true);
+  };
+
+  useEffect(() => {
+    if (!isAudioStarted) return;
+
+    const seq = new Tone.Sequence((time, step) => {
+      if (time < 0) return;
+      const { entropy: liveEntropy, elasticity: liveElasticity, harmonicMorph: liveMorph, rootFreq: liveRoot, feedbackIntensity: liveFeedback } = globalParamsRef.current;
+
+      if (step === 0) {
+        barCountRef.current++;
+        if (barCountRef.current % 4 === 0) {
+          auraLogic.current.rotationSpeed = (Math.random() - 0.5) * 0.015;
+        }
+        auraLogic.current.chaosThickness = 0.5 + Math.random() * 2.5;
+        auraLogic.current.chaosOpacity = 0.15 + Math.random() * 0.3;
+        auraLogic.current.chaosPoints = 4 + Math.floor(Math.random() * 10);
+
+        if (barCountRef.current % 32 === 0) {
+          setGeoPrimitive([3, 4, 5, 6, 8, 12][Math.floor(Math.random() * 6)]);
+        }
+        if (Math.random() < liveEntropy) {
+          setTracks(prev => prev.map(t => (
+            Math.random() < 0.05
+              ? { ...t, pattern: t.pattern.map((s, i) => i === Math.floor(Math.random() * STEPS) ? !s : s) }
+              : t
+          )));
+        }
+      }
+
+      tracksRef.current.forEach((track, trackIndex) => {
+        const actualStep = step % track.cycleLength;
+        if (track.pattern[actualStep] && Math.random() <= track.probability) {
+          const synthData = synthRefs.current[trackIndex];
+          if (!synthData) return;
+
+          const jitterVal = (Math.random() - 0.5) * (track.jitter + liveElasticity * 0.05);
+          const triggerTime = Math.max(time - 0.04, time + jitterVal);
+          const morphedRatio = RATIOS[trackIndex] * (1 - liveMorph) + (1 / RATIOS[trackIndex] * 10) * liveMorph;
+          const pitch = liveRoot * morphedRatio * (track.ratio || 1.0);
+          const fbMod = Math.min(1, kickEnergyRef.current + auraLogic.current.hatJitter * 0.25) * liveFeedback;
+          const baseFilter = 90 + Math.pow(track.cutoff, 2) * 9910;
+          const filterTarget = Math.min(12000, Math.max(60, baseFilter * (1 + fbMod * 1.5)));
+
+          synthData.filter.frequency.setValueAtTime(filterTarget, triggerTime);
+          synthData.filter.Q.setValueAtTime(0.5 + track.filterQ * 9.5, triggerTime);
+          synthData.panner.pan.setValueAtTime(track.pan, triggerTime);
+          synthData.reverbSend.gain.setValueAtTime(track.reverbSend, triggerTime);
+          synthData.synth.harmonicity.setValueAtTime(track.fmRatio, triggerTime);
+          synthData.synth.modulationIndex.setValueAtTime(track.fmIndex, triggerTime);
+          synthData.synth.detune.setValueAtTime(track.inharmonicity * 100, triggerTime);
+          synthData.synth.frequency.setValueAtTime(pitch * (1 + track.pitchDepth), triggerTime);
+          synthData.synth.frequency.rampTo(pitch, Math.max(0.005, track.pitchTime), triggerTime);
+          synthData.synth.triggerAttackRelease(pitch, Math.max(0.02, track.decay), triggerTime);
+
+          if (trackIndex === 0) kickEnergyRef.current = 1.0;
+          if (trackIndex > 11) auraLogic.current.hatJitter = 1.0;
+
+          Tone.Draw.schedule(() => {
+            activeTriggersRef.current.push({
+              trackIndex,
+              step: actualStep,
+              color: getTrackColor(trackIndex, 80, 70),
+              isLow: trackIndex < 4,
+              intensity: track.fmIndex,
+              pitchDepth: track.pitchDepth,
+              blur: Math.min(1, track.reverbSend + fbMod)
+            });
+          }, triggerTime);
+        }
+      });
+    }, Array.from({ length: STEPS }, (_, i) => i), "16n");
+
+    seq.start(0);
+    return () => seq.dispose();
+  }, [isAudioStarted]);
+
+  useEffect(() => {
+    if (!isAudioStarted) return;
+    if (isPlaying) {
+      Tone.getContext().resume().catch(() => {});
+      Tone.Transport.start();
+    } else {
+      Tone.Transport.pause();
+    }
+  }, [isPlaying, isAudioStarted]);
+
+  useEffect(() => {
+    if (Tone.Transport?.bpm) Tone.Transport.bpm.rampTo(bpm, 0.05);
+  }, [bpm]);
+
+  useEffect(() => {
+    if (Tone.Destination?.volume) Tone.Destination.volume.rampTo(masterVol, 0.1);
+  }, [masterVol]);
+
+  useEffect(() => {
+    if (resonanceNode.current?.resonance) {
+      resonanceNode.current.resonance.rampTo(Math.min(0.92, 0.22 + feedbackIntensity * 0.68), 0.1);
+    }
+  }, [feedbackIntensity, isAudioStarted]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden && isAudioStarted && isPlaying) {
+        Tone.getContext().resume().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isAudioStarted, isPlaying]);
+
+  const handleInteraction = (e, type) => {
+    if (type === 'up') { setIsDragging(null); return; }
+    if (!canvasRef.current || !e) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = e.clientX ?? 0;
+    const clientY = e.clientY ?? 0;
+    mousePos.current = { x: clientX, y: clientY };
+    const x = clientX - rect.left, y = clientY - rect.top;
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const dx = x - cx, dy = y - cy, dist = Math.sqrt(dx*dx + dy*dy);
+    let angle = Math.atan2(dy, dx); if (angle < 0) angle += Math.PI * 2;
+    const normAngle = angle / (Math.PI * 2);
+    const minDim = Math.min(rect.width, rect.height);
+    const maxR = minDim * 0.48, uiMasterR = maxR * 0.92, uiLabR = maxR * 0.83, sequencerMaxR = maxR * 0.74, coreR = sequencerMaxR * 0.3, ringW = (sequencerMaxR - coreR) / TOTAL_TRACKS;
+
+    if (type === 'down') {
+      if (dist > maxR) { 
+        setIsDragging('horizon');
+        dragStartData.current = { dist, val: visualPersistence };
+      } else if (dist > uiMasterR) {
+        const inPlayGap = normAngle < 0.0625 || normAngle >= 0.9375;
+        if (inPlayGap) {
+          setIsPlaying(v => !v);
+        } else {
+          const mParams = ['bpm', 'masterVol', 'elasticity', 'entropy', 'harmonicMorph', 'rootFreq', 'feedbackIntensity'];
