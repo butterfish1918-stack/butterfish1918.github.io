@@ -3,195 +3,102 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#0b100d" />
+  <meta name="theme-color" content="#11130f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="A playable systems prototype about survival, imperfect information and bureaucratic triage." />
-  <title>The Winter Registry — Prototype 0.2</title>
+  <meta name="description" content="A first-person administrative survival game about a frozen district and thirty lives." />
+  <title>The Winter Registry — 0.3 First Person</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./overhaul.css" />
+  <link rel="stylesheet" href="./v03.css" />
 </head>
 <body>
-  <div id="grain" aria-hidden="true"></div>
-
   <main id="app">
     <section id="titleScreen" class="screen active">
-      <div class="title-card panel-heavy">
-        <div class="stamp">MUNICIPAL SURVIVAL DIRECTORATE · FILE 7-Б</div>
+      <div class="title-scene" aria-hidden="true">
+        <div class="snow-layer snow-a"></div><div class="snow-layer snow-b"></div>
+        <div class="silhouette s1"></div><div class="silhouette s2"></div><div class="silhouette s3"></div>
+      </div>
+      <div class="title-card">
+        <div class="eyebrow">MUNICIPAL SURVIVAL DIRECTORATE · DISTRICT 7-Б</div>
         <h1>THE WINTER<br><span>REGISTRY</span></h1>
-        <p class="subtitle">Administrative survival · prototype 0.2</p>
-        <p class="lede">Thirty residents remain. Scavenge before dusk. Then decide how much food, heat and medicine each life is worth.</p>
-
-        <div class="cycle-preview" aria-label="Core game cycle">
-          <div><b>1</b><span>FIELD</span><small>06:00–18:00<br>Travel · assess · scavenge</small></div>
-          <i>→</i>
-          <div><b>2</b><span>LEDGER</span><small>18:00–00:00<br>Allocate scarce resources</small></div>
-          <i>→</i>
-          <div><b>3</b><span>NIGHT</span><small>00:00–06:00<br>Consequences are resolved</small></div>
+        <p class="tagline">Thirty people remain. Walk the district yourself. Learn what the ledger cannot tell you.</p>
+        <div class="cycle-strip">
+          <div><b>06:00–18:00</b><span>FIELD</span><small>Move · inspect · scavenge · assess</small></div>
+          <div><b>18:00–00:00</b><span>TRIAGE</span><small>Allocate food · heat · medicine</small></div>
+          <div><b>00:00–06:00</b><span>NIGHT</span><small>The district answers back</small></div>
         </div>
-
         <div class="title-actions">
           <button id="newGameBtn" class="primary">Begin New Administration</button>
-          <button id="continueBtn" class="secondary" disabled>Continue Previous File</button>
+          <button id="continueBtn" class="secondary" disabled>Continue</button>
           <button id="installBtn" class="ghost hidden">Install on Device</button>
         </div>
-        <p class="title-help">First game? A guided tutorial starts automatically. You can replay it any time from <b>?</b>.</p>
-        <div class="title-notes">
-          <span>Build 0.2</span><span>Touch + mouse</span><span>Local save</span><span>Offline capable</span>
-        </div>
+        <p class="small-note">Build 0.3 · first-person prototype · touch + mouse · local save · offline capable</p>
       </div>
     </section>
 
     <section id="gameScreen" class="screen">
-      <header class="topbar">
-        <div class="brand-block">
-          <strong>THE WINTER REGISTRY</strong>
-          <small id="phaseLabel">FIELD PHASE</small>
-        </div>
-        <div class="status-strip">
+      <header class="hud-top">
+        <div class="brand"><b>THE WINTER REGISTRY</b><span id="phaseLabel">FIELD</span></div>
+        <div class="hud-stats">
           <div><span>DAY</span><b id="dayLabel">01</b></div>
           <div><span>TIME</span><b id="timeLabel">06:00</b></div>
           <div><span>ALIVE</span><b id="aliveLabel">30</b></div>
-          <div class="seed-status"><span>SEED</span><b id="seedLabel">—</b></div>
+          <div><span>FOOD</span><b id="foodStock">14</b></div>
+          <div><span>HEAT</span><b id="heatStock">12</b></div>
+          <div><span>MED</span><b id="medStock">4</b></div>
         </div>
-        <div class="top-actions">
-          <button id="helpBtn" class="icon-btn help-btn" aria-label="Tutorial and help">?</button>
-          <button id="audioBtn" class="icon-btn" aria-label="Toggle ambience">◌</button>
-          <button id="saveBtn" class="icon-btn" aria-label="Save">▣</button>
-        </div>
+        <div class="hud-actions"><button id="helpBtn" aria-label="Tutorial">?</button><button id="saveBtn" aria-label="Save">▣</button></div>
       </header>
 
-      <div id="phaseRail" class="phase-rail" aria-label="Daily cycle">
-        <div data-phase="field" class="active"><b>01</b><span>FIELD</span><small>Gather & learn</small></div>
-        <div data-phase="ledger"><b>02</b><span>TRIAGE</span><small>Allocate</small></div>
-        <div data-phase="night"><b>03</b><span>NIGHT</span><small>Resolve</small></div>
-      </div>
-
-      <section id="fieldView" class="mode-view active">
-        <div class="world-wrap">
-          <canvas id="world" aria-label="Isometric district map"></canvas>
-          <div class="world-vignette"></div>
-          <div id="objectiveCard" class="objective-card">
-            <span>CURRENT OBJECTIVE</span>
-            <b id="objectiveTitle">Scavenge before dusk</b>
-            <p id="objectiveBody">Visit marked sites. Every journey and action consumes time.</p>
+      <section id="fieldView" class="view active">
+        <div class="first-person-shell">
+          <canvas id="world" aria-label="First person view of the district"></canvas>
+          <div id="screenFx" class="screen-fx"></div>
+          <div class="visor-grain"></div>
+          <div class="crosshair"><i></i><i></i></div>
+          <div id="objective" class="objective"><span>DIRECTIVE</span><b id="objectiveTitle">Get your bearings</b><p id="objectiveBody">Move through the district. Inspect marked sites before dusk.</p></div>
+          <div id="interactionHint" class="interaction-hint hidden"><span id="interactionKey">E</span><b id="interactionText">Inspect</b><small id="interactionSub">—</small></div>
+          <div id="feedbackFeed" class="feedback-feed"></div>
+          <div id="minimap" class="minimap"><canvas id="mapCanvas" width="160" height="160"></canvas><small>District 7-Б</small></div>
+          <div class="desktop-help">WASD move · Q/E turn · click-drag look · F interact</div>
+          <div class="touch-controls" id="touchControls">
+            <div class="move-pad">
+              <button data-move="forward">▲</button>
+              <div><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
+            </div>
+            <div class="look-pad"><button data-look="left">↶</button><button id="interactBtn" class="interact">INTERACT</button><button data-look="right">↷</button></div>
           </div>
-          <div id="tapHint" class="tap-hint">Tap a building or use the location list</div>
         </div>
 
-        <aside class="field-sidebar">
-          <div class="sidebar-section resource-section">
-            <div class="section-title-row"><div class="section-title">SUPPLIES</div><small>Carried back to Town Hall</small></div>
-            <div class="resource-grid">
-              <div><span>Nutrition</span><b id="foodStock">0</b><small>feeds residents</small></div>
-              <div><span>Heat</span><b id="heatStock">0</b><small>fuel & warmth</small></div>
-              <div><span>Medicine</span><b id="medStock">0</b><small>treats one resident</small></div>
-              <div><span>Scrap</span><b id="scrapStock">0</b><small>future upgrades</small></div>
-            </div>
-          </div>
-
-          <div class="sidebar-section locations-section">
-            <div class="section-title-row"><div class="section-title">LOCATIONS</div><small>Tap to visit</small></div>
-            <div id="siteDirectory" class="site-directory"></div>
-          </div>
-
-          <div class="sidebar-section notes-section">
-            <div class="section-title-row"><div class="section-title">FIELD LOG</div><small>Newest first</small></div>
-            <div id="fieldLog" class="field-log"></div>
-          </div>
-
-          <div class="sidebar-section controls-section">
-            <div class="section-title">END FIELD PHASE</div>
-            <p id="directiveText">Return when you are ready to distribute today's supplies. You may return before 18:00.</p>
-            <button id="returnBtn" class="primary wide">Return to Town Hall →</button>
-          </div>
+        <aside class="field-panel">
+          <section><div class="panel-title">FIELD BAG</div><div class="bag-grid"><div><span>Nutrition</span><b id="bagFood">14</b></div><div><span>Heat</span><b id="bagHeat">12</b></div><div><span>Medicine</span><b id="bagMed">4</b></div><div><span>Scrap</span><b id="scrapStock">0</b></div></div></section>
+          <section><div class="panel-title">FIELD RECORD</div><div id="fieldLog" class="field-log"></div></section>
+          <section class="panel-bottom"><button id="townHallBtn" class="secondary wide">Return to Town Hall</button></section>
         </aside>
       </section>
 
-      <section id="ledgerView" class="mode-view">
+      <section id="ledgerView" class="view ledger-view">
         <div class="ledger-shell">
           <div class="ledger-head">
-            <div>
-              <div class="stamp dark">POPULATION LEDGER · PROVISIONAL DATA</div>
-              <h2>CALCULUS OF TRIAGE</h2>
-              <p><b>Goal:</b> keep requested totals within available stock. Group sliders set defaults; individual ± controls override them. Assessed residents show reliable health data.</p>
-            </div>
-            <div class="ledger-stock">
-              <div><span>NUTRITION</span><b id="ledgerFood">0</b><small>available</small></div>
-              <div><span>HEAT</span><b id="ledgerHeat">0</b><small>available</small></div>
-              <div><span>MEDICINE</span><b id="ledgerMed">0</b><small>available</small></div>
-            </div>
+            <div><div class="eyebrow dark">EVENING PROVISIONAL LEDGER</div><h2>CALCULUS OF TRIAGE</h2><p>Set group policy, then override individual residents where necessary. The night engine will resolve the consequences.</p></div>
+            <div class="stock-box"><span>AVAILABLE</span><b id="ledgerFood">0 F</b><b id="ledgerHeat">0 H</b><b id="ledgerMed">0 M</b></div>
           </div>
-
-          <div class="ledger-guide">
-            <span class="guide-step"><b>1</b> Set group rations</span>
-            <span class="guide-step"><b>2</b> Override individuals if needed</span>
-            <span class="guide-step"><b>3</b> Keep requested totals within stock</span>
-            <span class="guide-step"><b>4</b> Seal the ledger</span>
-          </div>
-
           <div id="policyGrid" class="policy-grid"></div>
-
-          <div class="ledger-tools">
-            <input id="residentSearch" type="search" placeholder="Search resident or occupation…" autocomplete="off" />
-            <select id="residentFilter">
-              <option value="all">All residents</option>
-              <option value="critical">Critical health</option>
-              <option value="dissent">High dissent</option>
-              <option value="known">Assessed in field</option>
-              <option value="mutated">Mutated</option>
-            </select>
-            <button id="fitRationsBtn" class="assist-btn">Fit Plan to Stock</button>
-            <button id="autoMedicineBtn" class="secondary">Auto-triage Medicine</button>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Resident</th><th>Role</th><th>Age</th><th>Condition</th><th>Dissent</th><th>Mutation</th><th>Food</th><th>Heat</th><th>Med</th>
-                </tr>
-              </thead>
-              <tbody id="residentRows"></tbody>
-            </table>
-          </div>
-
-          <div class="ledger-foot">
-            <div id="projectionText">Set ration policies.</div>
-            <div class="ledger-foot-actions">
-              <button id="backToFieldBtn" class="ghost">← Return to Field</button>
-              <button id="sealLedgerBtn" class="danger">Seal Ledger & Resolve Night →</button>
-            </div>
-          </div>
+          <div class="ledger-tools"><input id="residentSearch" placeholder="Search resident / role"/><select id="residentFilter"><option value="all">All residents</option><option value="critical">Critical</option><option value="dissent">High dissent</option><option value="known">Assessed</option><option value="mutated">Mutated</option></select><button id="fitPlanBtn" class="secondary">Fit plan to stock</button><button id="autoMedicineBtn" class="secondary">Auto medicine</button></div>
+          <div id="projectionText" class="projection"></div>
+          <div id="residentCards" class="resident-cards"></div>
+          <div class="ledger-footer"><button id="backToFieldBtn" class="ghost">Return to Field</button><button id="sealLedgerBtn" class="danger">Seal Ledger & End Day</button></div>
         </div>
       </section>
     </section>
   </main>
 
-  <div id="modalLayer" class="modal-layer hidden" role="dialog" aria-modal="true">
-    <div id="modalCard" class="modal-card"></div>
-  </div>
-
-  <div id="tutorialLayer" class="tutorial-layer hidden" aria-live="polite">
-    <div id="tutorialFocus" class="tutorial-focus hidden"></div>
-    <section class="tutorial-card">
-      <div class="tutorial-kicker">QUARTERMASTER ORIENTATION</div>
-      <div class="tutorial-progress"><span id="tutorialStepLabel">1 / 8</span><i><b id="tutorialProgressBar"></b></i></div>
-      <h2 id="tutorialTitle">Welcome</h2>
-      <p id="tutorialText"></p>
-      <div id="tutorialTip" class="tutorial-tip"></div>
-      <div class="tutorial-actions">
-        <button id="tutorialSkip" class="ghost">Skip tutorial</button>
-        <button id="tutorialNext" class="primary">Continue</button>
-      </div>
-    </section>
-  </div>
-
+  <div id="modalLayer" class="modal-layer hidden"><div id="modalCard" class="modal-card"></div></div>
+  <div id="tutorialLayer" class="tutorial-layer hidden"><div id="tutorialCard" class="tutorial-card"></div></div>
+  <div id="nightCurtain" class="night-curtain hidden"><div><span>00:00</span><b>THE DISTRICT GOES DARK</b><small>Calculating hunger · cold · radiation · dissent</small></div></div>
   <div id="toast" class="toast hidden"></div>
 
-  <script src="./game.js" defer></script>
-  <script src="./ux.js" defer></script>
+  <script src="./v03.js" defer></script>
 </body>
 </html>
