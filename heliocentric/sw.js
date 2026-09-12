@@ -1,4 +1,4 @@
-const CACHE = 'heliocentric-v1';
+const CACHE = 'heliocentric-v2';
 const SHELL = [
   './',
   './index.html',
@@ -13,7 +13,8 @@ const SHELL = [
   './heliocentric-icon.svg',
   '../vendor/react.development.js',
   '../vendor/react-dom.development.js',
-  '../vendor/babel.min.js'
+  '../vendor/babel.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/tone/14.9.17/Tone.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const network = fetch(event.request).then((response) => {
-        if (response && response.ok) {
+        if (response && (response.ok || response.type === 'opaque')) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         }
