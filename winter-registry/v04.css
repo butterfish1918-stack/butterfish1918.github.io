@@ -1,0 +1,12 @@
+/* 0.4 PS1 environmental pass */
+#world{image-rendering:pixelated;image-rendering:crisp-edges;background:#50564f}
+.first-person-shell{background:#1b1e1a}
+.visor-grain{opacity:.24;background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.11) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px);mix-blend-mode:overlay}
+.crosshair i{background:#e0dccb;box-shadow:0 0 0 1px rgba(20,21,18,.55)}
+.objective,.interaction-hint,.minimap{border-radius:0;box-shadow:3px 3px 0 rgba(0,0,0,.42)}
+.interaction-hint{border-color:#b4a673;background:rgba(14,15,12,.91)}
+.feedback-item{border-radius:0;backdrop-filter:none}
+.minimap canvas{image-rendering:pixelated;border:1px solid #55584f}
+.title-card,.field-panel,.ledger-shell,.modal-card,.tutorial-card{border-radius:0}
+.title-card:before{content:'BUILD 0.4 // LOW-POLY DISTRICT RENDER';display:block;color:#9f9471;font:10px/1.2 monospace;letter-spacing:.08em;margin-bottom:14px}
+@media(max-width:760px){.desktop-help{display:none}.objective{max-width:min(72vw,310px)}.minimap{transform:scale(.88);transform-origin:top right}}
