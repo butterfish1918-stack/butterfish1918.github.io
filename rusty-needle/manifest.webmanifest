@@ -1,0 +1,18 @@
+{
+  "name": "The Rusty Needle - Aleatoric Jukebox",
+  "short_name": "Rusty Needle",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "description": "A mobile aleatoric jukebox for ABC notation, mashups and stochastic blends.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Rusty Needle - Aleatoric Jukebox</title>
+    <meta name="theme-color" content="#111111">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Rusty Needle">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    
+    <!-- Vintage & Grunge Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/abcjs@6.4.3/dist/abcjs-basic-min.js"></script>
+    
+        <link rel="stylesheet" href="./styles-1.css">
+    <link rel="stylesheet" href="./styles-2.css">
+    <link rel="stylesheet" href="./styles-3.css">
+    <link rel="stylesheet" href="./styles-4.css">
+</head>
+<body>
+
+    <div id="status-overlay" class="modal-overlay">
+        <div class="spinner"></div>
+        <span id="status-text" style="color: var(--neon-amber); font-size: 2rem;">Warming up the tubes...</span>
+    </div>
+
+    <div class="jukebox-cabinet">
+        <div class="cabinet-arch">
+            <h1>The Rusty Needle</h1>
+            <span>Stochastic Jukebox Model 1994</span>
+        </div>
+
+        <div class="glass-dome" id="output-zone">
+            <div id="notation-target"></div>
+        </div>
+
+        <div class="control-board">
+            
+            <div class="selector-panel">
+                <div class="panel-header">
+                    <span>DISC MENU (24 SLOTS)</span>
+                    <span id="selection-status">AWAITING SELECTION...</span>
+                </div>
+                <ul class="song-list" id="song-list">
+                    <!-- 24 fixed physical slots injected here -->
+                </ul>
+            </div>
+
+            <div class="action-panel">
+                <div class="readout-panel">
+                    <div class="time-row">
+                        <span>TIME</span>
+                        <span id="time-display">00:00 / 00:00</span>
+                    </div>
+                    <select id="archive-dropdown" class="mech-select">
+                        <option value="">-- SELECT STORED RECORD --</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <!-- The Major Affordances -->
+                    <button id="btn-play-solo" class="mech-btn btn-play-main" style="flex: 2;">► PLAY SELECTION</button>
+                    <!-- NEW LOOP BUTTON -->
+                    <button id="btn-loop" class="mech-btn btn-util" style="flex: 1; border-color: #4CAF50; color: #4CAF50;">LOOP: ON</button>
+                    <button id="btn-stop" class="mech-btn" style="flex: 1;" disabled>HALT</button>
+                </div>
+                
+                <!-- BATCH QUEUE PROGRAMMER -->
+                <div class="readout-panel" style="margin-bottom: 0.5rem; padding: 0.3rem;">
+                    <span style="font-size: 0.7rem; color: #888; text-align: center; display: block; border-bottom: 1px solid #333; margin-bottom: 0.2rem;">RAPID QUEUE (MAX 10)</span>
+                    <div id="rapid-queue-container" class="rapid-queue-container">
+                        <!-- Checkboxes injected here -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="btn-play-mashup" class="mech-btn btn-dj" title="Play queued tracks simultaneously">MASHUP</button>
+                    
+                    <!-- MUSICALITY OVERRIDE -->
+                    <button id="btn-musicality" class="mech-btn btn-musicality" title="Tap to toggle musicality">MUSICALITY: OFF</button>
+                    <button id="btn-musicality-settings" class="mech-btn btn-util mobile-tune-btn" title="Open musicality settings" aria-label="Open musicality settings">TUNE</button>
+                    
+                    <button id="btn-play-stochastic" class="mech-btn btn-dj" title="Markov chain blend of queued tracks">BLEND</button>
+                </div>
+                
+                <button id="btn-toggle-hatch" class="mech-btn btn-util" style="margin-top: 0.5rem; border-color: #ffb300; color: #ffb300; font-size: 0.8rem;">[X] ACCESS SERVICE HATCH [X]</button>
+
+                <div class="ingest-slot" style="margin-top: 0.5rem;">
+                    <input type="text" id="abc-title" placeholder="ENTER RECORD NAME..." spellcheck="false" autocomplete="off">
+                    <textarea id="abc-input" spellcheck="false" placeholder="INSERT COIN (Paste raw ABC syntax here to populate an empty slot...)"></textarea>
+                    <button id="btn-save" class="mech-btn btn-util">ARCHIVE TO EMPTY SLOT</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- THE SERVICE HATCH (UNDER THE HOOD) -->
+    <div id="service-hatch" class="service-hatch">
+        <div class="hatch-header">
+            <div class="hatch-tabs">
+                <button class="hatch-tab active" data-target="panel-mashup">MASHUP CIRCUITS (DSP)</button>
+                <button class="hatch-tab" data-target="panel-blend">STOCHASTIC MATRICES (AST)</button>
+            </div>
+            <button id="btn-close-hatch" class="mech-btn btn-util" style="padding: 0.2rem 1rem;">CLOSE PANEL</button>
+        </div>
+
+        <div id="panel-mashup" class="hatch-body active">
+            <!-- REVISED MASHUP ALGORITHMS (NON-DESTRUCTIVE) -->
+            <select id="m-algo" class="rusty-select" style="margin-bottom: 0.5rem;">
+                <option value="0">ALGO I: Pure Polyphony (Baseline Array)</option>
+                <option value="1">ALGO II: Tape Wow & Flutter (Delay Time Modulation)</option>
+                <option value="2">ALGO III: Granular Degradation (Comb Filter Sweeps)</option>
+                <option value="3">ALGO IV: Cagean Dropouts (Master Gain Muting)</option>
+                <option value="4">ALGO V: Spectral Scrambling (Smoothed Cutoff Sweeps)</option>
+            </select>
+            <div class="param-grid">
+                <div class="param-control"><label>1. MOD DEPTH (%)</label><input type="range" id="m-p1" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>2. DROPOUT CHANCE</label><input type="range" id="m-p2" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>3. LPF CUTOFF (Hz)</label><input type="range" id="m-p3" class="rusty-slider" min="200" max="20000" value="20000"></div>
+                <div class="param-control" title="Reduced to max 10 to prevent self-oscillation clipping"><label>4. RESONANCE (Q)</label><input type="range" id="m-p4" class="rusty-slider" min="0" max="10" value="1"></div>
+                <div class="param-control"><label>5. TREMOLO DEPTH</label><input type="range" id="m-p5" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>6. TREMOLO Hz</label><input type="range" id="m-p6" class="rusty-slider" min="1" max="20" value="5"></div>
+                <div class="param-control"><label>7. DELAY MIX (%)</label><input type="range" id="m-p7" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>8. DELAY TIME (ms)</label><input type="range" id="m-p8" class="rusty-slider" min="10" max="1000" value="300"></div>
+                <div class="param-control"><label>9. TUBE DRIVE</label><input type="range" id="m-p9" class="rusty-slider" min="0" max="100" value="0"></div>
+            </div>
+        </div>
+
+        <div id="panel-blend" class="hatch-body">
+            <select id="b-algo" class="rusty-select" style="margin-bottom: 0.5rem;">
+                <option value="0">ALGO I: 0-Order Uniform (Pure White Noise Selection)</option>
+                <option value="1">ALGO II: 1st-Order Markov (Transitional Probability)</option>
+                <option value="2">ALGO III: 2nd-Order Markov (Pair-Based Cohesion Matrix)</option>
+                <option value="3">ALGO IV: Brownian Motion (Drunkard's Linear Walk)</option>
+                <option value="4">ALGO V: Serialist Permutation (Non-Repeating Rows)</option>
+            </select>
+            <div class="param-grid">
+                <div class="param-control"><label>1. LENGTH MOD (%)</label><input type="range" id="b-p1" class="rusty-slider" min="50" max="200" value="100" step="10"></div>
+                <div class="param-control"><label>2. RETROGRADE (%)</label><input type="range" id="b-p2" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>3. REST INJECT (%)</label><input type="range" id="b-p3" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>4. PITCH INVERT (%)</label><input type="range" id="b-p4" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>5. REPEAT LIMIT</label><input type="range" id="b-p5" class="rusty-slider" min="1" max="16" value="4"></div>
+                <div class="param-control"><label>6. METRIC MOD (%)</label><input type="range" id="b-p6" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>7. OCTAVE SHIFT (%)</label><input type="range" id="b-p7" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>8. BURROUGHS SPLICE</label><input type="range" id="b-p8" class="rusty-slider" min="0" max="100" value="0"></div>
+                <div class="param-control"><label>9. SILENCE PADDING</label><input type="range" id="b-p9" class="rusty-slider" min="0" max="100" value="0"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- THE MUSICALITY TUNING BOX -->
+    <div id="musicality-hatch" class="service-hatch" style="border-top-color: var(--neon-gold);">
+        <div class="hatch-header">
+            <span style="color: var(--neon-gold); font-family: var(--font-display); font-size: 1.2rem;">MUSICALITY OVERRIDE PROTOCOLS</span>
+            <button id="btn-close-musicality" class="mech-btn btn-util" style="padding: 0.2rem 1rem;">CLOSE BOX</button>
+        </div>
+        <div class="hatch-body active" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <!-- These logic gates are enforced when the Master Switch is ON -->
+            <label class="tuning-box-item">1. Tempo Synchronisation (Mashup) <input type="checkbox" id="mus-1" checked></label>
+            <label class="tuning-box-item">2. Key Normalisation to C (Both) <input type="checkbox" id="mus-2" checked></label>
+            <label class="tuning-box-item">3. Octave Constriction (Stochastic) <input type="checkbox" id="mus-3" checked></label>
+            <label class="tuning-box-item">4. Rhythmic Smoothing (Stochastic) <input type="checkbox" id="mus-4" checked></label>
+            <label class="tuning-box-item">5. Tube Drive Suppression (Mashup) <input type="checkbox" id="mus-5" checked></label>
+            <label class="tuning-box-item">6. Tremolo Deactivation (Mashup) <input type="checkbox" id="mus-6" checked></label>
+            <label class="tuning-box-item">7. Dissonant Filter Clamp (Mashup) <input type="checkbox" id="mus-7" checked></label>
+            <label class="tuning-box-item">8. Forced Cadence Resolution (Stochastic) <input type="checkbox" id="mus-8" checked></label>
+            <label class="tuning-box-item">9. Markov Distance Clamping (Stochastic) <input type="checkbox" id="mus-9" checked></label>
+            <label class="tuning-box-item">10. Max Polyphony Limiter (Mashup) <input type="checkbox" id="mus-10" checked></label>
+        </div>
+    </div>
+
+        <script src="./app-1.js"></script>
+    <script src="./app-2.js"></script>
+    <script src="./app-3.js"></script>
+    <script src="./app-4.js"></script>
+    <script src="./app-5.js"></script>
+</body>
+</html>

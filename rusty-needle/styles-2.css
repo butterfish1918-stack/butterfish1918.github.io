@@ -1,0 +1,227 @@
+        /* Wurlitzer Title Strip Styling */
+        .song-card {
+            background: var(--paper-aged);
+            color: #111;
+            padding: 0.2rem;
+            display: flex;
+            align-items: stretch;
+            border: 2px solid #8B0000; 
+            border-radius: 3px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5), inset 0 0 15px rgba(139, 69, 19, 0.1);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.1s ease-in-out;
+            height: 65px;
+        }
+
+        .song-card::before {
+            content: "";
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border: 1px solid rgba(139, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        .song-card:active {
+            transform: scale(0.98);
+        }
+
+        .song-card.selected {
+            background: #fff9e6;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(51, 255, 102, 0.5), inset 0 0 20px rgba(51, 255, 102, 0.2);
+            transform: translateY(-2px);
+            z-index: 5;
+        }
+
+        .song-card.selected::before { border-color: var(--neon-green); }
+
+        .song-card.empty {
+            background: #333;
+            border-color: #222;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            color: #555;
+            cursor: default;
+        }
+        .song-card.empty::before { border-color: transparent; }
+        .song-card.empty:active { transform: none; }
+
+        .card-checkbox-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.8rem;
+            border-right: 2px solid #8B0000;
+            background: rgba(0,0,0,0.05);
+            z-index: 2; 
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        
+        .card-checkbox-zone.active-queue { background: rgba(51, 255, 102, 0.15); border-right-color: var(--neon-green); }
+        .card-checkbox-zone.active-queue span { color: var(--neon-green); }
+        .song-card.selected .card-checkbox-zone { border-right-color: var(--neon-green); }
+        .song-card.empty .card-checkbox-zone { display: none; }
+
+        .card-checkbox-zone span {
+            font-family: var(--font-led);
+            font-size: 0.6rem;
+            color: #555;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+        
+        .song-card input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--neon-red);
+            margin: 0;
+        }
+
+        .card-content {
+            flex: 1;
+            padding-left: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+        .song-card.empty .card-content { align-items: center; padding: 0; }
+
+        .song-title {
+            font-weight: bold;
+            font-size: 0.85rem;
+            line-height: 1.1;
+            margin-bottom: 0.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            font-family: var(--font-typewriter);
+        }
+
+        .card-id { font-family: var(--font-typewriter); font-size: 0.65rem; color: #555; }
+
+        .btn-delete {
+            position: absolute;
+            bottom: 2px; right: 4px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-family: var(--font-led);
+            font-size: 0.8rem;
+            z-index: 2;
+        }
+        .btn-delete:hover { color: red; text-shadow: 0 0 5px red; }
+        .song-card.empty .btn-delete { display: none; }
+
+        /* Actions Panel */
+        .action-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .mech-btn {
+            background: linear-gradient(to bottom, #d44, #911);
+            border: 2px solid #500;
+            border-top: 2px solid #f66;
+            border-left: 2px solid #f66;
+            color: white;
+            font-family: var(--font-typewriter);
+            font-weight: bold;
+            padding: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0 #000;
+            box-shadow: 0 4px 0 #400, 0 5px 10px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .mech-btn:active, .mech-btn.active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #400, 0 1px 5px rgba(0,0,0,0.5);
+            background: linear-gradient(to bottom, #a22, #700);
+        }
+
+        .mech-btn:disabled {
+            filter: grayscale(1) brightness(0.5);
+            cursor: not-allowed;
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .btn-play-main { background: linear-gradient(to bottom, #2a2, #060); border-color: #030; border-top-color: #4c4; border-left-color: #4c4; box-shadow: 0 4px 0 #020, 0 5px 10px rgba(0,0,0,0.5); font-size: 1.1rem; }
+        .btn-play-main:active, .btn-play-main.active { background: linear-gradient(to bottom, #181, #040); box-shadow: 0 0 0 #020, 0 1px 5px rgba(0,0,0,0.5); }
+
+        .btn-dj { background: linear-gradient(to bottom, #44d, #119); border-color: #005; border-top-color: #66f; border-left-color: #66f; box-shadow: 0 4px 0 #004, 0 5px 10px rgba(0,0,0,0.5); }
+        .btn-dj:active, .btn-dj.active { background: linear-gradient(to bottom, #22a, #007); box-shadow: 0 0 0 #004, 0 1px 5px rgba(0,0,0,0.5); }
+
+        /* THE MUSICALITY BUTTON */
+        .btn-musicality {
+            background: linear-gradient(to bottom, #b8860b, #6b4e00);
+            border-color: #4a3600;
+            border-top-color: #ffd700;
+            border-left-color: #ffd700;
+            box-shadow: 0 4px 0 #332500, 0 5px 10px rgba(0,0,0,0.5);
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            padding: 0.5rem;
+            flex: 0.8;
+        }
+        .btn-musicality.active {
+            background: linear-gradient(to bottom, #ffd700, #b8860b);
+            color: #000;
+            text-shadow: none;
+            box-shadow: 0 0 0 #332500, 0 1px 5px rgba(0,0,0,0.5), inset 0 0 10px #fff;
+            border-color: #fff;
+        }
+
+        .btn-util { background: linear-gradient(to bottom, #666, #333); border-color: #222; border-top-color: #888; border-left-color: #888; box-shadow: 0 4px 0 #111, 0 5px 10px rgba(0,0,0,0.5); padding: 0.5rem; }
+        .btn-util:active { transform: translateY(4px); box-shadow: 0 0 0 #111, 0 1px 5px rgba(0,0,0,0.5); }
+
+        /* The Ingest Slot */
+        .ingest-slot {
+            flex: 1;
+            background: #050505;
+            border: 3px inset #333;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        input[type="text"]#abc-title {
+            background: #111;
+            color: var(--neon-amber);
+            font-family: var(--font-led);
+            font-size: 1.1rem;
+            border: none;
+            border-bottom: 2px dashed #444;
+            padding: 0.6rem;
+            outline: none;
+            transition: background 0.3s;
+        }
+        input[type="text"]#abc-title::placeholder { color: rgba(255, 179, 0, 0.3); }
+
+        textarea#abc-input {
+            flex: 1;
+            background: transparent;
+            color: var(--neon-amber);
+            font-family: var(--font-led);
+            font-size: 0.8rem;
+            border: none;
+            padding: 0.5rem;
+            resize: none;
+            outline: none;
+        }
+        textarea#abc-input::placeholder { color: rgba(255, 179, 0, 0.3); }
+

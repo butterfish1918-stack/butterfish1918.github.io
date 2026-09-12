@@ -1,0 +1,90 @@
+        /* IV. Android / small-screen hardening */
+        html { min-height: 100%; background: var(--bg-grime); }
+        body { min-height: 100dvh; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        button, input, select, textarea, label { touch-action: manipulation; }
+        button, select, input[type="checkbox"] { min-height: 44px; }
+        input, textarea, select { font-size: 16px; } /* Prevent Android browser zoom-on-focus */
+        .song-card, .rapid-queue-item, .mech-btn, .hatch-tab { -webkit-user-select: none; user-select: none; }
+        #abc-input, #abc-title { -webkit-user-select: text; user-select: text; }
+        .service-hatch { max-height: 92dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+        .mobile-tune-btn { display: none; }
+
+        @media (max-width: 900px) {
+            body {
+                display: block;
+                min-height: 100dvh;
+                overflow-x: hidden;
+                overflow-y: auto;
+                padding: 0;
+            }
+            .jukebox-cabinet {
+                width: 100%;
+                max-width: none;
+                height: auto;
+                min-height: 100dvh;
+                border-width: 0 0 10px 0;
+                border-radius: 0;
+                overflow: visible;
+            }
+            .cabinet-arch {
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                padding-top: max(0.75rem, env(safe-area-inset-top));
+            }
+            .cabinet-arch h1 { font-size: clamp(1.65rem, 8vw, 2.1rem); }
+            .cabinet-arch span { font-size: 0.85rem; letter-spacing: 2px; }
+            .glass-dome {
+                flex: none;
+                min-height: 32dvh;
+                max-height: 44dvh;
+                padding: 0.5rem;
+            }
+            #notation-target { max-width: 100%; height: auto; min-height: 28dvh; }
+            .control-board {
+                height: auto;
+                flex: none;
+                overflow: visible;
+                padding: 0.65rem;
+                gap: 0.65rem;
+            }
+            .selector-panel { min-height: 330px; max-height: 48dvh; }
+            .song-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 0.4rem; }
+            .song-card { min-width: 0; height: 70px; }
+            .card-checkbox-zone { padding: 0 0.5rem; min-width: 48px; }
+            .song-card input[type="checkbox"], .tuning-box-item input[type="checkbox"] { width: 24px; height: 24px; min-height: 24px; }
+            .action-panel { min-width: 0; }
+            .mech-btn { min-height: 48px; padding: 0.72rem 0.55rem; }
+            .rapid-queue-container { height: 120px; }
+            .ingest-slot { min-height: 260px; }
+            textarea#abc-input { min-height: 150px; font-size: 16px; }
+            .service-hatch {
+                position: fixed;
+                top: max(8px, env(safe-area-inset-top));
+                bottom: max(8px, env(safe-area-inset-bottom));
+                left: 8px;
+                right: 8px;
+                width: auto;
+                height: auto;
+                max-height: none;
+                border: 3px solid var(--chrome-dark);
+                border-radius: 12px;
+                overflow: hidden;
+                z-index: 200;
+            }
+            .hatch-header { gap: 0.5rem; align-items: flex-start; }
+            .hatch-tabs { gap: 0.35rem; flex-wrap: wrap; }
+            .hatch-tab { padding: 0.45rem 0.55rem; font-size: 0.85rem; flex: 1 1 145px; }
+            .hatch-body { padding-bottom: 1rem; }
+            #musicality-hatch .hatch-body { grid-template-columns: 1fr !important; }
+            .param-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+            .param-control { min-width: 0; }
+            .mobile-tune-btn { display: block; }
+        }
+
+        @media (max-width: 430px) {
+            .song-list { grid-template-columns: 1fr; }
+            .selector-panel { min-height: 360px; }
+            .param-grid { grid-template-columns: 1fr; }
+            .panel-header { font-size: 1rem; }
+        }
