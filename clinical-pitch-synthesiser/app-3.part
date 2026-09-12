@@ -1,0 +1,336 @@
+      audioCtxRef.current = audioCtx;
+      
+      if (isLombardMode) {
+          startLombardNoise(audioCtx);
+      }
+
+      const filterLP = audioCtx.createBiquadFilter(); filterLP.type = 'lowpass'; filterLP.frequency.value = dspConfigRef.current.lpFreq; 
+      const filterHP = audioCtx.createBiquadFilter(); filterHP.type = 'highpass'; filterHP.frequency.value = dspConfigRef.current.hpFreq; 
+
+      const analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; analyserRef.current = analyser;
+      const source = audioCtx.createMediaStreamSource(stream); sourceRef.current = source;
+      source.connect(filterHP); filterHP.connect(filterLP); filterLP.connect(analyser);
+
+      if (!isLive) {
+          const compressor = audioCtx.createDynamicsCompressor(); compressor.threshold.value = -35; compressor.ratio.value = 8; 
+          const makeUpGain = audioCtx.createGain(); makeUpGain.gain.value = 5.0;
+          const limiter = audioCtx.createDynamicsCompressor(); limiter.threshold.value = -3; limiter.ratio.value = 20; 
+          const recDest = audioCtx.createMediaStreamDestination();
+          filterLP.connect(compressor); compressor.connect(makeUpGain); makeUpGain.connect(limiter); limiter.connect(recDest);
+          audioChunksRef.current = [];
+          const supportedMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+          const preferredMimeType = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported
+            ? supportedMimeTypes.find(type => MediaRecorder.isTypeSupported(type))
+            : null;
+          const mediaRecorder = preferredMimeType
+            ? new MediaRecorder(recDest.stream, { mimeType: preferredMimeType })
+            : new MediaRecorder(recDest.stream);
+          mediaRecorderRef.current = mediaRecorder;
+          mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const blobType = mediaRecorder.mimeType || preferredMimeType || 'audio/webm';
+            setRecordedAudioUrl(URL.createObjectURL(new Blob(audioChunksRef.current, { type: blobType })));
+          };
+          mediaRecorder.start();
+      }
+
+      setIsWarmingUp(false); setIsRecording(true); isRecordingRef.current = true; strobePhaseRef.current = 0;
+      setRecordedAudioUrl(null); synthPitchDataRef.current = []; setUserBaseMidi(null); 
+      if (pitchOverlayRef.current) pitchOverlayRef.current.style.display = 'none';
+      
+      let initialMsg = isLive ? `Live Training Protocol Active.` : `Extraction initiated.`;
+      if (isLombardMode) initialMsg += " LOMBARD MASKING ENGAGED. Resist the psychological urge to sharpen.";
+      else if (isVoidMode) initialMsg += " VOID PROTOCOL ACTIVE. Replicate from internal audiation.";
+      else initialMsg += " Lock onto the radium lanes.";
+      
+      setFeedback(initialMsg);
+      
+      setPitchData([]); currentPitchData.current = []; startTime.current = performance.now();
+      
+      const dataArray = new Float32Array(analyser.fftSize);
+      const freqDataArray = new Float32Array(analyser.frequencyBinCount);
+      let lastDisplayMidi = -1; let isOverlayShown = false; let lastScroll = 0;
+
+      const processAudio = () => {
+        if (!isRecordingRef.current) return;
+        
+        analyser.getFloatTimeDomainData(dataArray);
+        analyser.getFloatFrequencyData(freqDataArray); 
+        
+        const acousticData = autoCorrelate(dataArray, audioCtx.sampleRate, dspConfigRef.current);
+        const pitch = acousticData.pitch;
+        const now = performance.now();
+        const elapsed = now - startTime.current;
+        
+        const expectedHz = getExpectedHzAtTime(elapsed);
+        if (pitch !== -1 && pitch > 50 && expectedHz > 0 && !isLive) {
+            const centDiff = 1200 * Math.log2(pitch / expectedHz);
+            strobePhaseRef.current += centDiff * 0.005; 
+        }
+        
+        let f1 = 0, f2 = 0, fsRatio = 0, tilt = 0, oq = 0, grit = 0, efficiency = 0;
+        if (pitch !== -1 && pitch > 50) {
+           const nyquist = audioCtx.sampleRate / 2; const hzPerBin = nyquist / analyser.frequencyBinCount;
+           
+           const h1Bin = Math.max(1, Math.floor(pitch / hzPerBin));
+           const h2Bin = Math.max(1, Math.floor((pitch * 2) / hzPerBin));
+           const h1_dB = freqDataArray[h1Bin] || -100;
+           const h2_dB = freqDataArray[h2Bin] || -100;
+           tilt = h1_dB - h2_dB;
+           oq = Math.max(0.3, Math.min(0.8, 0.45 + (tilt * 0.012))); 
+
+           const findPeakInRange = (startHz, endHz) => {
+              const startBin = Math.floor(startHz / hzPerBin); const endBin = Math.ceil(endHz / hzPerBin);
+              let maxVal = -Infinity; let maxBin = startBin;
+              for(let i=startBin; i<=endBin; i++) {
+                 const val = (freqDataArray[i-1] || -100) + freqDataArray[i] + (freqDataArray[i+1] || -100);
+                 if(val > maxVal) { maxVal = val; maxBin = i; }
+              }
+              return maxBin * hzPerBin;
+           };
+           f1 = findPeakInRange(300, 1000); f2 = findPeakInRange(850, 2500);
+           
+           let highEnergy = 0; let totalEnergy = 0; let subglottalEnergyProxy = 0;
+           for(let i=0; i<freqDataArray.length; i++) {
+               const hz = i * hzPerBin; const linearMag = Math.pow(10, freqDataArray[i] / 20);
+               totalEnergy += linearMag; 
+               if (hz >= 2500 && hz <= 3500) highEnergy += linearMag;
+               if (hz < 800) subglottalEnergyProxy += linearMag; 
+           }
+           fsRatio = totalEnergy > 0 ? (highEnergy / totalEnergy) * 100 : 0;
+           
+           efficiency = subglottalEnergyProxy > 0 ? (acousticData.rms / subglottalEnergyProxy) * 1000 : 0;
+           
+           let variance = 0;
+           for(let i=0; i<dataArray.length; i++) { variance += Math.abs(dataArray[i]) - acousticData.rms; }
+           grit = Math.max(0, Math.min(100, (variance / dataArray.length) * 50));
+        }
+
+        if (pitch !== -1 && pitch > 50 && pitch < 1200) { 
+          const midi = hzToMidi(pitch);
+          currentPitchData.current.push({ time: elapsed, pitch, midi, rms: acousticData.rms, hnr: acousticData.hnr, f1, f2, fsRatio, tilt, oq, grit, efficiency });
+          setClinicalStats({ f1: Math.round(f1), f2: Math.round(f2), hnr: acousticData.hnr, fsRatio, tilt, oq, grit, efficiency });
+
+          const displayMidi = Math.round(midi);
+          if (pitchTextRef.current && lastDisplayMidi !== displayMidi) {
+             pitchTextRef.current.innerText = `Pitch: ${NOTES[displayMidi % 12]}${Math.floor(displayMidi / 12) - 1} (${Math.round(pitch)}Hz)`;
+             lastDisplayMidi = displayMidi;
+          }
+          if (pitchOverlayRef.current && !isOverlayShown) { pitchOverlayRef.current.style.display = 'flex'; isOverlayShown = true; }
+          
+          drawPhaseSpaceAttractor(dataArray, pitch); 
+        } else {
+          if (pitchOverlayRef.current && isOverlayShown) { pitchOverlayRef.current.style.display = 'none'; isOverlayShown = false; }
+        }
+        
+        if (isLive) {
+            currentPitchData.current = currentPitchData.current.filter(d => d.time > elapsed - 8000);
+            drawFrame(dataArray, currentPitchData.current, [], true);
+            
+            const aWrap = document.getElementById('absolute-scroll-wrapper'); 
+            if (aWrap) aWrap.scrollLeft = aWrap.scrollWidth;
+            const pWrap = document.getElementById('personal-scroll-wrapper'); 
+            if (pWrap) pWrap.scrollLeft = pWrap.scrollWidth;
+        } else {
+            let sum = 0; for(let i=0; i<currentPitchData.current.length; i++) sum += currentPitchData.current[i].midi;
+            const rollingMean = currentPitchData.current.length > 0 ? sum / currentPitchData.current.length : 69;
+            drawFrame(dataArray, currentPitchData.current, synthPitchDataRef.current, false);
+            drawPersonalizedFrame(dataArray, currentPitchData.current, rollingMean, false);
+            
+            const maxD = Math.max(getCanvasDuration(targetSequence.length, bpm), elapsed + 1000); 
+            const scrollTarget = Math.max(0, (80 + ((elapsed / maxD) * (800 * (maxD / getCanvasDuration(targetSequence.length, bpm))))) - 400);
+            if (Math.abs(lastScroll - scrollTarget) > 2) {
+                const aWrap = document.getElementById('absolute-scroll-wrapper'); if (aWrap) aWrap.scrollLeft = scrollTarget;
+                const pWrap = document.getElementById('personal-scroll-wrapper'); if (pWrap) pWrap.scrollLeft = scrollTarget;
+                lastScroll = scrollTarget;
+            }
+        }
+        animationRef.current = requestAnimationFrame(processAudio);
+      };
+      processAudio();
+    } catch (err) { setFeedback(`Acoustic capture failed: ${err.message}. Hardware privileges are strictly required.`); } 
+    finally { isStartingRef.current = false; setIsWarmingUp(false); }
+  };
+
+  const stopRecording = () => {
+    if (!isRecordingRef.current) return;
+    setIsRecording(false); isRecordingRef.current = false;
+    stopLombardNoise();
+    if (pitchOverlayRef.current) pitchOverlayRef.current.style.display = 'none';
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop(); 
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+    if (audioCtxRef.current) audioCtxRef.current.close();
+    sourceRef.current = null;
+    
+    setPitchData([...currentPitchData.current]);
+    if (isLiveModeRef.current) setFeedback('Live training module deactivated. The valves cool down.');
+    else analyzeContour(currentPitchData.current);
+  };
+
+  const toggleLiveTraining = () => {
+      if (isLiveMode) { stopRecording(); setIsLiveMode(false); isLiveModeRef.current = false; } 
+      else { if (isRecording) stopRecording(); setIsLiveMode(true); isLiveModeRef.current = true; startRecording(true); }
+  };
+
+  const applyMedianFilter = (data, windowSize = 5, key = 'midi') => {
+    const smoothed = []; const halfWindow = Math.floor(windowSize / 2);
+    for (let i = 0; i < data.length; i++) {
+      const windowData = [];
+      for (let j = Math.max(0, i - halfWindow); j <= Math.min(data.length - 1, i + halfWindow); j++) windowData.push(data[j][key]);
+      windowData.sort((a, b) => a - b);
+      const median = windowData[Math.floor(windowData.length / 2)];
+      smoothed.push({ ...data[i], [key]: median });
+    }
+    return smoothed;
+  };
+
+  const analyzeContour = (rawData) => {
+    const voicedFrames = rawData.filter(d => d.pitch > 0);
+    if (voicedFrames.length < 15) {
+      setFeedback('Insufficient organic data. You either whispered, or the noise gate chewed up your attempt. Project from the diaphragm.');
+      return;
+    }
+
+    const segments = []; let currentSeg = [];
+    for (let i=0; i<voicedFrames.length; i++) {
+        if (currentSeg.length === 0) currentSeg.push(voicedFrames[i]);
+        else {
+            if (voicedFrames[i].time - voicedFrames[i-1].time < 100) currentSeg.push(voicedFrames[i]);
+            else { segments.push(currentSeg); currentSeg = [voicedFrames[i]]; }
+        }
+    }
+    if (currentSeg.length > 0) segments.push(currentSeg);
+
+    let gatedFrames = [];
+    segments.forEach(seg => {
+        const onsetTime = seg[0].time;
+        const valid = seg.filter(f => f.time > onsetTime + 50); 
+        gatedFrames.push(...valid);
+    });
+
+    if (gatedFrames.length < 5) gatedFrames = voicedFrames; 
+
+    let jitterSum = 0; let validPeriods = 0;
+    for(let i=1; i<gatedFrames.length; i++) {
+        const t1 = 1 / gatedFrames[i-1].pitch; const t2 = 1 / gatedFrames[i].pitch;
+        jitterSum += Math.abs(t2 - t1); validPeriods++;
+    }
+    const meanT0 = 1 / (gatedFrames.reduce((acc, f) => acc + f.pitch, 0) / gatedFrames.length);
+    const jitterPercent = validPeriods > 0 ? (jitterSum / validPeriods) / meanT0 * 100 : 0;
+
+    let shimmerSum = 0;
+    for(let i=1; i<gatedFrames.length; i++) shimmerSum += Math.abs(gatedFrames[i].rms - gatedFrames[i-1].rms);
+    const meanRms = gatedFrames.reduce((acc, f) => acc + f.rms, 0) / gatedFrames.length;
+    const shimmerPercent = validPeriods > 0 ? (shimmerSum / validPeriods) / (meanRms || 0.001) * 100 : 0;
+
+    const firstVoicedTime = voicedFrames[0].time;
+    const latencyMs = Math.max(0, firstVoicedTime - 1000);
+
+    const heavySmooth = applyMedianFilter(gatedFrames, 21, 'midi').map(d => d.midi); 
+    const lightSmooth = applyMedianFilter(gatedFrames, 3, 'midi').map(d => d.midi);  
+    
+    let zeroCrossings = 0; let lastSign = 0;
+    for(let i=0; i<lightSmooth.length; i++) {
+        const residual = lightSmooth[i] - heavySmooth[i];
+        const sign = Math.sign(residual);
+        if (sign !== 0 && lastSign !== 0 && sign !== lastSign) zeroCrossings++;
+        if (sign !== 0) lastSign = sign;
+    }
+    const durationSec = (gatedFrames[gatedFrames.length-1].time - gatedFrames[0].time) / 1000;
+    const vibratoRate = durationSec > 0 ? (zeroCrossings / 2) / durationSec : 0;
+
+    let vibratoEnergy = 0;
+    for(let i=0; i<lightSmooth.length; i++) vibratoEnergy += Math.pow(lightSmooth[i] - heavySmooth[i], 2);
+    const vibratoDepth = Math.sqrt(vibratoEnergy / lightSmooth.length); 
+
+    let data = applyMedianFilter(gatedFrames, 7, 'midi');
+    const midis = data.map(d => d.midi);
+    const meanMidi = midis.reduce((a,b) => a+b, 0) / midis.length;
+    setUserBaseMidi(meanMidi); 
+
+    const { data: idealData } = getIdealContourData();
+    const targetMidis = idealData.map(d => d.midi);
+    const targetMeanMidi = targetMidis.reduce((a,b) => a+b, 0) / targetMidis.length;
+    const octaveOffset = Math.round(meanMidi - targetMeanMidi);
+    const transposedUserMidis = midis.map(m => m - octaveOffset);
+
+    const meanHz = midiToHz(meanMidi);
+    let sensitivityMult = 1.0;
+    if (meanHz > 500 && meanHz < 4000) sensitivityMult = 1.0 + Math.log10(meanHz / 500); 
+
+    const resample = (arr, length) => {
+        const res = [];
+        for (let i = 0; i < length; i++) {
+            const idx = (i / (length - 1)) * (arr.length - 1);
+            res.push(arr[Math.floor(idx)] * (1 - (idx - Math.floor(idx))) + (arr[Math.ceil(idx)] || arr[Math.floor(idx)]) * (idx - Math.floor(idx)));
+        }
+        return res;
+    };
+
+    const resolution = 100;
+    const uArr = resample(transposedUserMidis, resolution);
+    const tArr = resample(targetMidis, resolution);
+    const n = uArr.length; const m = tArr.length;
+    const dtw = Array.from({length: n + 1}, () => Array(m + 1).fill(Infinity));
+    dtw[0][0] = 0;
+    for (let i = 1; i <= n; i++) {
+        for (let j = 1; j <= m; j++) {
+            const cost = Math.abs(uArr[i-1] - tArr[j-1]);
+            dtw[i][j] = cost + Math.min(dtw[i-1][j], dtw[i][j-1], dtw[i-1][j-1]);
+        }
+    }
+    
+    const avgCentError = (dtw[n][m] / Math.max(n, m)) * 100;
+    const psychoacousticCentError = avgCentError * sensitivityMult;
+    
+    let vibratoPenalty = 0; let vibratoMsg = "";
+    if (vibratoDepth > 0.4 && (vibratoRate < 4.0 || vibratoRate > 7.5)) {
+        vibratoPenalty = 15;
+        vibratoMsg = `Unhealthy waver (${vibratoRate.toFixed(1)}Hz).`;
+    } else if (vibratoDepth > 0.25 && vibratoRate >= 4.5 && vibratoRate <= 6.5) {
+        vibratoPenalty = -5; 
+        vibratoMsg = `Healthy periodic vibrato (${vibratoRate.toFixed(1)}Hz).`;
+    } else {
+        vibratoMsg = `Rigid execution. Minimal vibrato.`;
+    }
+
+    let lombardPenalty = 0;
+    if (isLombardMode && avgCentError > 30) {
+        lombardPenalty = 20; 
+    }
+
+    const score = Math.max(0, Math.min(100, 100 - (psychoacousticCentError * 2) - vibratoPenalty - lombardPenalty)); 
+    
+    const avgTilt = gatedFrames.reduce((a,b) => a+b.tilt, 0) / gatedFrames.length;
+    const avgOQ = gatedFrames.reduce((a,b) => a+b.oq, 0) / gatedFrames.length;
+    const avgFsRatio = gatedFrames.reduce((a,b) => a+b.fsRatio, 0) / gatedFrames.length;
+    const avgGrit = gatedFrames.reduce((a,b) => a+b.grit, 0) / gatedFrames.length;
+    const avgEff = gatedFrames.reduce((a,b) => a+b.efficiency, 0) / gatedFrames.length;
+
+    let fatigueTriggered = false;
+    const newSessionEntry = { attempt: sessionHistory.length + 1, centError: avgCentError, score, jitter: jitterPercent };
+    const updatedHistory = [...sessionHistory, newSessionEntry];
+    setSessionHistory(updatedHistory);
+    
+    if (updatedHistory.length >= 3) {
+        const recent = updatedHistory.slice(-3);
+        if (recent[0].jitter < recent[1].jitter && recent[1].jitter < recent[2].jitter && recent[2].jitter > 1.2) {
+            fatigueTriggered = true;
+        }
+    }
+
+    let finalFeedback = "";
+    if (score > 90) finalFeedback = `Exceptional. JND Deviation: <span class="text-[#a3e635]">${avgCentError.toFixed(1)}¢</span>. Pure geometric precision.`;
+    else if (score > 75) finalFeedback = `Adequate geometry. JND Deviation: <span class="text-[#d4af37]">${avgCentError.toFixed(1)}¢</span>. The structure holds.`;
+    else if (score > 50) finalFeedback = `Mediocre execution. JND Deviation: <span class="text-[#f59e0b]">${avgCentError.toFixed(1)}¢</span>. Your pitch slips.`;
+    else finalFeedback = `Utter failure. JND Deviation: <span class="text-[#dc2626]">${avgCentError.toFixed(1)}¢</span>. The architecture collapsed.`;
+
+    const fatigueWarningStr = fatigueTriggered ? `<div class="mt-4 mb-2 p-3 border border-[#dc2626] bg-[#dc2626]/10 text-[#dc2626] font-bold animate-pulse text-xs">⚠ VOCAL FATIGUE DETECTED. Shimmer and Jitter vectors escalating. Shut up and have a brew before inflicting permanent orthopaedic damage on your vocal folds.</div>` : "";
+    const voidStr = isVoidMode ? `<div class="text-[#d4af37] font-bold mt-2 text-xs">VOID PROTOCOL COMPLETE. Working memory verified.</div>` : "";
+    const lombardStr = isLombardMode ? `<div class="text-[#a3e635] font-bold mt-2 text-xs">LOMBARD MASKING WITHSTOOD. ${lombardPenalty > 0 ? "Pitch drifted under pressure." : "Acoustic isolation maintained."}</div>` : "";
+
+    const tableHTML = `
+      ${fatigueWarningStr}
+      <table class="w-full text-left mt-4 border-collapse text-xs">
+          <tr class="border-b border-[#5c4a3d] text-[#8b7355]"><th class="py-2">Component</th><th>Metric</th><th class="text-right">Result</th></tr>
