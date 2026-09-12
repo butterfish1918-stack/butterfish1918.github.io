@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hyper-liminoid-v11-2-mobile-2';
+const CACHE_NAME = 'hyper-liminoid-v11-2-mobile-3';
 const APP_SHELL = [
   './',
   './index.html',
