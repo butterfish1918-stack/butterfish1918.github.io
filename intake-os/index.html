@@ -16,14 +16,11 @@
 </head>
 <body>
 
-    <!-- VISUAL ENGINE -->
     <div id="canvas-container">
         <canvas id="fluidCanvas"></canvas>
     </div>
 
-    <!-- ACTIVE HUD -->
     <div id="ui-layer">
-        <!-- Breath Guide Element -->
         <div id="breath-guide"></div>
 
         <div id="active-hud">
@@ -31,7 +28,7 @@
                 <span id="current-mode-name">MODE: NULL</span>
                 <span id="litres-display">CYCLES: 0</span>
             </div>
-            
+
             <div id="center-display">
                 <div id="timer">00:00</div>
                 <div id="phase-label">INIT</div>
@@ -48,7 +45,6 @@
         </div>
     </div>
 
-    <!-- MENU SYSTEM -->
     <div id="menu-layer">
         <div class="menu-header">
             <h1>INTAKE // OS</h1>
@@ -63,14 +59,13 @@
             </div>
             <button id="install-btn" class="hidden">INSTALL ON DEVICE</button>
         </div>
-        <div id="protocol-container">
-            <!-- Populated via JS -->
-        </div>
+        <div id="protocol-container"></div>
         <div class="safety-note">Use seated or lying down. Never use breath-hold or rapid-breath protocols while driving, in water, or where fainting could cause injury. Stop if you feel dizzy, numb, or unwell.</div>
     </div>
 
     <script src="./data.js"></script>
-    <script src="./engine.js"></script>
+    <script src="./audio.js"></script>
+    <script src="./visuals.js"></script>
     <script src="./app.js"></script>
 </body>
 </html>
