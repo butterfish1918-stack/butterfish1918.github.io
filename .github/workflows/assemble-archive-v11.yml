@@ -1,0 +1,71 @@
+name: Assemble Archive v11
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "the-archive/.v11build/**"
+      - ".github/workflows/assemble-archive-v11.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "archive-v11-assemble"
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble exact v11 payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f the-archive/.v11build/payload-aa.b64 ]; then
+            echo "No staged Archive v11 payload remains; nothing to assemble."
+            exit 0
+          fi
+          cat the-archive/.v11build/payload-*.b64 > /tmp/archive-v11.b64
+          test "$(wc -c < /tmp/archive-v11.b64)" -eq 43820
+          base64 -d /tmp/archive-v11.b64 > /tmp/archive-v11.tar.gz
+          echo "98c5635ef1b4cadec34f675c84a59569a5d1d8598693f4a8ceae67189d7ef862  /tmp/archive-v11.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/archive-v11.tar.gz -C the-archive
+          rm -rf the-archive/.v11build
+
+      - name: Validate production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f the-archive/index.html
+          test -f the-archive/app.js
+          test -f the-archive/app.css
+          test -f the-archive/storage.js
+          test -f the-archive/manifest.webmanifest
+          test -f the-archive/sw.js
+          cp the-archive/app.js /tmp/archive-app.mjs
+          cp the-archive/storage.js /tmp/archive-storage.mjs
+          node --check /tmp/archive-app.mjs
+          node --check /tmp/archive-storage.mjs
+          node --check the-archive/sw.js
+          python -m json.tool the-archive/manifest.webmanifest >/dev/null
+          grep -q "Wardrobe Intelligence" the-archive/index.html
+          grep -q "archive-v11.0.0" the-archive/sw.js
+
+      - name: Commit production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add the-archive
+          if git diff --cached --quiet; then
+            echo "No production changes to commit."
+            exit 0
+          fi
+          git commit -m "Deploy The Archive Wardrobe Intelligence v11"
+          git push
