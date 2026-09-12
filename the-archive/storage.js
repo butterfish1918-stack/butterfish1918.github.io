@@ -1,6 +1,7 @@
 const COLLECTIONS = [
   'outfits','perfumes','archetypes','hairstyles','garments','wears','plans','wishlist','trips',
-  'feedback','careTasks','perfumeWears','calendarEvents'
+  'feedback','careTasks','perfumeWears','calendarEvents',
+  'relationships','atelier','retired','journals','styleRules','outfitFamilies','locations'
 ];
 const APP_ID = window.ARCHIVE_APP_ID || 'the-archive-antwerp';
 const embeddedConfig = window.ARCHIVE_FIREBASE_CONFIG || null;

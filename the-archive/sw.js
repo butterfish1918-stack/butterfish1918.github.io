@@ -1,5 +1,5 @@
-const CACHE = 'archive-v12.0.0';
-const CORE = ['./','./index.html','./app.js','./app.css','./storage.js','./config.js','./manifest.webmanifest','./icon.svg'];
+const CACHE = 'archive-v13.0.0';
+const CORE = ['./','./index.html','./app.js','./app.css','./storage.js','./config.js','./manifest.webmanifest','./icon.svg','./v13.js','./v13.css'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });

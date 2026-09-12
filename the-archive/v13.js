@@ -74,7 +74,7 @@ window.wardrobeApp=function(){
   };
 
   a.saveStyleRule=async function(){const d=this.ruleDraft;if(!d.value.trim())return;await this.save('styleRules',[{id:this.uid('RULE'),...d,value:d.value.trim(),enabled:true,createdAt:new Date().toISOString()}]);this.ruleDraft={kind:'PREFER_COLOR',value:'',strength:'SOFT',note:''};this.toast('Style rule added');};
-  a.toggleRule=async function(r){await this.save('styleRules',[{...r,enabled:r.enabled===false,true:true,enabled:r.enabled===false?true:false}]);};
+  a.toggleRule=async function(r){await this.save('styleRules',[{...r,enabled:r.enabled===false?true:false}]);};
   a.deleteRule=async function(r){await this.replace('styleRules',this.styleRules.filter(x=>x.id!==r.id));};
 
   a.addLocation=async function(){if(!this.locationDraft.name.trim())return;await this.save('locations',[{id:this.uid('LOC'),...this.locationDraft,name:this.locationDraft.name.trim()}]);this.locationDraft={name:'',zone:'WARDROBE',note:''};};

@@ -63,3 +63,7 @@ Open the live URL in Chrome and choose **Install app** / **Add to Home screen**.
 - Personal body measurement profile and garment-level fit measurements
 - Fit-risk hints for tops, outerwear and trousers
 - Existing v11 wardrobe records remain backward-compatible
+
+## Wardrobe Intelligence v13
+
+Adds contextual outfit memory, garment relationship graph, outfit families, wardrobe locations, Atelier records, wear-photo journals, automatic seasonal rotation, rediscovery, retirement history, redundancy detection, purchase comparison, capsule optimisation, style evolution, recommendation confidence, Why Not analysis, scenario planning, wardrobe health, explicit style rules, and a local wardrobe-aware Stylist. Existing v9-v12 local data remains compatible.
