@@ -1,5 +1,13 @@
-const CACHE = 'gothica-tabs-v2';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'gothica-tabs-v3';
+const CORE = [
+  './',
+  './index.html',
+  './app.css',
+  './engine.js',
+  './app.js',
+  './manifest.webmanifest',
+  './icon.svg'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
