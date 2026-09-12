@@ -1,0 +1,51 @@
+name: Upgrade The Archive to v12
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "the-archive/v12_patch.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-v12-upgrade
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Apply v12 patch
+        run: python3 the-archive/v12_patch.py
+      - name: Validate JavaScript
+        run: |
+          node --check the-archive/app.js
+          node --check the-archive/sw.js
+          node --check the-archive/storage.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          html=Path('the-archive/index.html').read_text()
+          assert 'Wardrobe Intelligence v12' in html
+          assert 'Morning mode' in html
+          assert 'Why this look' in html
+          assert 'Replacement matrix' in html
+          assert 'Fit profile' in html
+          json.loads(Path('the-archive/manifest.webmanifest').read_text())
+          print('v12 validation OK')
+          PY
+      - name: Commit production upgrade
+        run: |
+          rm -f the-archive/v12_patch.py .github/workflows/archive-v12.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy The Archive Wardrobe Intelligence v12"
+          git push
