@@ -20,13 +20,21 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key !== CACHE_NAME && !key.startsWith('heliocentric-')).map((key) => caches.delete(key))
+    ))
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // Heliocentric is an independent sub-app. Do not let the root Pain Engine
+  // cache intercept its JavaScript/assets or substitute the root index page.
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.includes('/heliocentric/')) return;
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
       const copy = response.clone();
