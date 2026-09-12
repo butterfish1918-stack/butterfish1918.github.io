@@ -1,140 +1,57 @@
 (() => {
-  'use strict';
-  const E=window.GothicaEngine;
-  let renderMode='standard';
-  const STORAGE_KEY='chiaroscuro-gothica-abc-v2';
-  const input=document.getElementById('abc-input');
+'use strict';
+const E=window.GothicaEngine,input=document.getElementById('abc-input');
+const DRAFT='chiaroscuro-gothica-abc-v3',SETTINGS='chiaroscuro-gothica-settings-v3',PROJECTS='chiaroscuro-gothica-projects-v1';
+let renderMode='standard',lastVisual=null,synthControl=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function msg(text,error=false){const b=$('message-box');b.textContent=text;b.style.display='block';b.dataset.error=error?'1':'0';clearTimeout(msg.t);msg.t=setTimeout(()=>b.style.display='none',3600);}
+function safeName(s){return(s||'score').replace(/[^a-z0-9._-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,70)||'score';}
+function download(data,name,type){const blob=data instanceof Blob?data:new Blob([data],{type});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),800);}
+function settings(){let s={};try{s=JSON.parse(localStorage.getItem(SETTINGS)||'{}');}catch{}return{tuningKey:$('tuning-select').value||s.tuningKey||'standard',customTuning:$('custom-tuning').value||s.customTuning||'',capo:Number($('capo-input').value||s.capo||0),transpose:Number($('transpose-select').value||s.transpose||0),measures:Number($('measures-select').value||s.measures||4)};}
+function saveSettings(){localStorage.setItem(SETTINGS,JSON.stringify(settings()));}
+function customNotes(s){if(s.tuningKey!=='custom')return null;return E.parseCustomTuning(s.customTuning);}
 
-  function showMessage(msg,isError=false){
-    const box=document.getElementById('message-box');
-    box.textContent=msg; box.style.display='block';
-    box.style.borderColor=isError?'#b84b4b':'var(--accent-brass)';
-    clearTimeout(showMessage.timer);
-    showMessage.timer=setTimeout(()=>box.style.display='none',3500);
-  }
+function initControls(){
+  const ts=$('tuning-select');Object.entries(E.tunings).forEach(([k,v])=>ts.add(new Option(v.label,k)));ts.add(new Option('Custom tuning…','custom'));
+  const tr=$('transpose-select');for(let i=-12;i<=12;i++)tr.add(new Option(i===0?'0 · concert pitch':`${i>0?'+':''}${i} semitone${Math.abs(i)===1?'':'s'}`,String(i)));
+  let s={};try{s=JSON.parse(localStorage.getItem(SETTINGS)||'{}');}catch{}ts.value=s.tuningKey||'standard';$('custom-tuning').value=s.customTuning||'';$('capo-input').value=s.capo??0;tr.value=String(s.transpose??0);$('measures-select').value=String(s.measures??4);syncCustom();
+  [ts,$('custom-tuning'),$('capo-input'),tr,$('measures-select')].forEach(el=>el.addEventListener('change',()=>{syncCustom();saveSettings();if($('output-wrapper').classList.contains('visible'))render(false);}));
+}
+function syncCustom(){$('custom-tuning-wrap').hidden=$('tuning-select').value!=='custom';}
 
-  function generateChordSVG(name){
-    const f=E.chordLib[name];
-    if(!f) return `<div class="chord-fallback" title="No built-in fingering for ${name}">${name}</div>`;
-    const fretted=f.filter(v=>Number.isInteger(v)&&v>0);
-    const minFret=fretted.length?Math.min(...fretted):1;
-    const maxFret=fretted.length?Math.max(...fretted):4;
-    const baseFret=maxFret>4?minFret:1;
-    let s=`<svg width="75" height="108" viewBox="0 0 80 118" role="img" aria-label="${name} guitar chord">
-      <text x="40" y="16" fill="var(--accent-brass)" font-family="'Pirata One', cursive" font-size="18" text-anchor="middle">${name}</text>
-      <g transform="translate(10,30)"><rect width="60" height="70" fill="none" stroke="var(--accent-brass)" stroke-width="2"/>`;
-    for(let i=1;i<4;i++) s+=`<line y1="${i*17.5}" x2="60" y2="${i*17.5}" stroke="var(--accent-brass)" stroke-opacity="0.3"/>`;
-    for(let i=1;i<5;i++) s+=`<line x1="${i*12}" x2="${i*12}" y2="70" stroke="var(--accent-brass)" stroke-opacity="0.3"/>`;
-    if(baseFret>1) s+=`<text x="-7" y="12" fill="var(--accent-brass)" font-size="9" text-anchor="middle">${baseFret}</text>`;
-    f.forEach((v,i)=>{
-      const x=i*12;
-      if(v===null) s+=`<text x="${x}" y="-5" fill="var(--accent-blood)" font-size="10" text-anchor="middle">X</text>`;
-      else if(v===0) s+=`<circle cx="${x}" cy="-7" r="3" fill="none" stroke="var(--accent-brass)" stroke-width="1"/>`;
-      else s+=`<circle cx="${x}" cy="${(v-baseFret+1)*17.5-8.75}" r="4" fill="var(--accent-blood)"/>`;
-    });
-    return s+'</g></svg>';
-  }
+function generateChordSVG(name){const f=E.chordLib[name];if(!f)return`<div class="chord-fallback" title="No built-in fingering">${esc(name)}</div>`;const fretted=f.filter(v=>Number.isInteger(v)&&v>0),min=fretted.length?Math.min(...fretted):1,max=fretted.length?Math.max(...fretted):4,base=max>4?min:1;let s=`<svg width="82" height="112" viewBox="0 0 84 120" role="img" aria-label="${esc(name)} chord"><text x="42" y="16" fill="var(--accent-brass)" font-family="'Pirata One'" font-size="19" text-anchor="middle">${esc(name)}</text><g transform="translate(12,31)"><rect width="60" height="70" fill="none" stroke="var(--accent-brass)" stroke-width="2"/>`;for(let i=1;i<4;i++)s+=`<line y1="${i*17.5}" x2="60" y2="${i*17.5}" stroke="var(--accent-brass)" stroke-opacity=".3"/>`;for(let i=1;i<5;i++)s+=`<line x1="${i*12}" x2="${i*12}" y2="70" stroke="var(--accent-brass)" stroke-opacity=".3"/>`;if(base>1)s+=`<text x="-7" y="12" fill="var(--accent-brass)" font-size="9">${base}</text>`;f.forEach((v,i)=>{const x=i*12;if(v===null)s+=`<text x="${x}" y="-5" fill="var(--accent-blood)" font-size="10" text-anchor="middle">×</text>`;else if(v===0)s+=`<circle cx="${x}" cy="-7" r="3" fill="none" stroke="var(--accent-brass)"/>`;else s+=`<circle cx="${x}" cy="${(v-base+1)*17.5-8.75}" r="4" fill="var(--accent-blood)"/>`;});return s+'</g></svg>';}
 
-  function processAndRender(){
-    const raw=input.value.trim();
-    if(!raw){showMessage('Enter ABC notation first.',true);return;}
-    localStorage.setItem(STORAGE_KEY,raw);
-    try{
-      const analysis=E.structuralMIRAnalysis(raw);
-      const keyInfo=E.analyzeKey(raw);
-      const tabs=E.getTablatureConfig(analysis);
-      const guitarVoiceCount=tabs.filter(v=>v.instrument==='guitar').length;
-      document.getElementById('analysis-output').innerHTML=`
-        <h3>MIR Analyticvm Report</h3>
-        <p><strong>Primary Tonal Center:</strong> ${keyInfo.key} ${keyInfo.type} <span style="opacity:.6">(r=${keyInfo.r})</span></p>
-        <p><strong>Detected Voices:</strong> ${analysis.voiceIds.length} &nbsp;·&nbsp; <strong>Guitar-tab Voices:</strong> ${guitarVoiceCount}</p>`;
+function renderAnalysis(raw,a,key,s,tabCount){const m=E.meta(raw),alts=key.alternatives.map(x=>`${x.key} ${x.type} (${x.r})`).join(' · '),voiceList=a.voiceIds.map(id=>`<span class="voice-chip">${esc(a.voiceMeta[id]?.name||id)}</span>`).join('');$('analysis-output').innerHTML=`<div class="analysis-head"><div><h3>MIR Analyticvm Report</h3><p class="analysis-sub">${esc(m.title)}</p></div><div class="key-sigil"><strong>${esc(E.transposeChordName(key.key,s.transpose))}</strong><span>${esc(key.type)}</span></div></div><div class="stat-grid"><div><span>Measures</span><strong>${a.stats.measures}</strong></div><div><span>Note events</span><strong>${a.stats.notes}</strong></div><div><span>Voices</span><strong>${a.stats.voices}</strong></div><div><span>Guitar TAB</span><strong>${tabCount}</strong></div><div><span>Tempo</span><strong>${m.tempo}</strong></div><div><span>Capo</span><strong>${s.capo||'—'}</strong></div></div><p><strong>Key candidates:</strong> ${esc(alts||'Insufficient pitch data')}</p><div class="voice-list">${voiceList}</div>`;}
+function renderHarmony(a,transpose){const lex=$('chord-overview');lex.innerHTML='';const chords=(a.chords.length?a.chords:['C','G','D','Am','Em']).slice(0,24).map(c=>E.transposeChordName(c,transpose));[...new Set(chords)].forEach(c=>{const card=document.createElement('div');card.className='chord-card';card.innerHTML=generateChordSVG(c);lex.appendChild(card);});const prog=$('progression');prog.innerHTML=a.progression.map(p=>`<div class="measure-card"><span>M${p.measure}</span><strong>${esc(E.transposeChordName(p.chord,transpose))}</strong></div>`).join('');}
+function audioSetup(visual,s){
+  const status=$('audio-status');if(!window.ABCJS?.synth?.supportsAudio?.()){status.textContent='Audio is not supported in this browser.';return;}
+  try{if(!synthControl){synthControl=new ABCJS.synth.SynthController();synthControl.load('#audio-control',null,{displayLoop:true,displayRestart:true,displayPlay:true,displayProgress:true,displayWarp:true});}
+    status.textContent='Playback will load on first play.';synthControl.setTune(visual,false,{options:{midiTranspose:s.transpose}}).then(()=>status.textContent='Playback ready · tempo control is the % field.').catch(e=>{console.warn(e);status.textContent='Playback could not be prepared.';});
+  }catch(e){console.warn(e);status.textContent='Playback unavailable for this score.';}
+}
 
-      const lexicon=document.getElementById('chord-overview');
-      lexicon.innerHTML='';
-      const chords=analysis.chords.length?analysis.chords.slice(0,20):['C','G','D','Am','Em'];
-      chords.forEach(c=>{
-        const card=document.createElement('div'); card.className='chord-card';
-        card.innerHTML=generateChordSVG(c); lexicon.appendChild(card);
-      });
+function render(scroll=true){const raw=input.value.trim();if(!raw){msg('Enter ABC notation first.',true);return;}if(!window.ABCJS){msg('Notation engine did not load. Reload while online.',true);return;}const s=settings(),custom=customNotes(s);if(s.tuningKey==='custom'&&!custom){msg('Custom tuning needs exactly six ABC note names.',true);return;}localStorage.setItem(DRAFT,raw);saveSettings();try{const a=E.structuralMIRAnalysis(raw),key=E.analyzeKey(raw),tabs=E.getTablatureConfig(a,{...s,customTuning:custom}),tabCount=tabs.filter(x=>x.instrument==='guitar').length;renderAnalysis(raw,a,key,s,tabCount);renderHarmony(a,s.transpose);$('output-wrapper').classList.add('visible');$('render-mode-label').textContent=renderMode==='tab'?'Standard notation + guitar TAB':'Standard notation';$('toggle-btn').textContent=renderMode==='tab'?'Standard Score':'Score + TAB';const mobile=matchMedia('(max-width:720px)').matches;const cfg={responsive:'resize',staffwidth:mobile?680:950,add_classes:true,visualTranspose:s.transpose,viewportHorizontal:false,wrap:{minSpacing:1.45,maxSpacing:2.7,preferredMeasuresPerLine:mobile?Math.min(3,s.measures):s.measures}};if(renderMode==='tab')cfg.tablature=tabs;const result=ABCJS.renderAbc('sheet-music',raw,cfg);if(!result?.length)throw new Error('ABCJS could not render this input.');lastVisual=result[0];audioSetup(lastVisual,s);if(scroll)$('output-wrapper').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);msg(`Render error: ${e.message||'invalid ABC notation'}`,true);}}
 
-      document.getElementById('output-wrapper').classList.add('visible');
-      document.getElementById('toggle-btn').style.display='block';
-      document.getElementById('pdf-btn').style.display='block';
-      const mobile=window.matchMedia('(max-width: 720px)').matches;
-      const config={responsive:'resize',staffwidth:mobile?680:950,add_classes:true,
-        wrap:{minSpacing:1.5,maxSpacing:2.7,preferredMeasuresPerLine:mobile?2:4}};
-      if(renderMode==='tab') config.tablature=tabs;
-      const result=window.ABCJS.renderAbc('sheet-music',raw,config);
-      if(!result||!result.length) throw new Error('ABCJS could not render this input.');
-      document.getElementById('output-wrapper').scrollIntoView({behavior:'smooth',block:'start'});
-    }catch(err){
-      console.error(err); showMessage(`Render error: ${err.message||'invalid ABC notation'}`,true);
-    }
-  }
+async function exportPDF(){const svgs=[...document.querySelectorAll('#sheet-music svg')];if(!svgs.length||!window.jspdf?.jsPDF){msg('Render a score before exporting.',true);return;}msg('Preparing PDF…');try{const{jsPDF}=window.jspdf,doc=new jsPDF('p','mm','a4');let page=0;for(const svg of svgs){const clone=svg.cloneNode(true);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'}),url=URL.createObjectURL(blob),img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});const vb=svg.viewBox?.baseVal,w=vb?.width||svg.getBoundingClientRect().width||1000,h=vb?.height||svg.getBoundingClientRect().height||800,targetW=Math.min(1800,Math.max(900,Math.round(w*1.5))),scale=targetW/w,sliceH=w*277/190;for(let y=0;y<h;y+=sliceH){const sh=Math.min(sliceH,h-y),c=document.createElement('canvas');c.width=targetW;c.height=Math.max(1,Math.round(sh*scale));const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#e8dfc8';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,y,w,sh,0,0,c.width,c.height);if(page++)doc.addPage();doc.addImage(c.toDataURL('image/jpeg',.9),'JPEG',10,10,190,190*c.height/c.width,undefined,'FAST');}URL.revokeObjectURL(url);}doc.save(`${safeName(E.meta(input.value).title)}.pdf`);msg(`PDF exported · ${page} page${page===1?'':'s'}.`);}catch(e){console.error(e);msg('PDF export failed on this device.',true);}}
+function exportMidi(){if(!window.ABCJS?.synth?.getMidiFile){msg('MIDI engine is unavailable.',true);return;}try{const s=settings(),midi=ABCJS.synth.getMidiFile(input.value,{midiOutputType:'binary',midiTranspose:s.transpose});download(midi,`${safeName(E.meta(input.value).title)}.mid`,'audio/midi');msg('MIDI exported.');}catch(e){console.error(e);msg('MIDI export failed for this ABC score.',true);}}
 
-  function initialiseRendering(){
-    if(typeof window.ABCJS==='undefined'){
-      showMessage('Notation engine did not load. Check your connection and reload.',true); return;
-    }
-    renderMode='standard'; processAndRender();
-  }
+function projects(){try{return JSON.parse(localStorage.getItem(PROJECTS)||'{}');}catch{return{};}}
+function refreshProjects(selectName=''){const sel=$('project-select'),p=projects();sel.innerHTML='<option value="">— Choose saved project —</option>';Object.keys(p).sort((a,b)=>a.localeCompare(b)).forEach(n=>sel.add(new Option(n,n)));if(selectName)sel.value=selectName;}
+function saveProject(){const name=$('project-name').value.trim()||E.meta(input.value).title||'Untitled';const p=projects();p[name]={abc:input.value,settings:settings(),savedAt:Date.now()};localStorage.setItem(PROJECTS,JSON.stringify(p));$('project-name').value=name;refreshProjects(name);msg(`Saved “${name}”.`);}
+function loadProject(){const name=$('project-select').value,p=projects()[name];if(!p){msg('Choose a saved project first.',true);return;}input.value=p.abc;$('project-name').value=name;if(p.settings){$('tuning-select').value=p.settings.tuningKey||'standard';$('custom-tuning').value=p.settings.customTuning||'';$('capo-input').value=p.settings.capo||0;$('transpose-select').value=String(p.settings.transpose||0);$('measures-select').value=String(p.settings.measures||4);syncCustom();saveSettings();}localStorage.setItem(DRAFT,input.value);msg(`Loaded “${name}”.`);render(false);}
+function deleteProject(){const name=$('project-select').value;if(!name){msg('Choose a project to delete.',true);return;}const p=projects();delete p[name];localStorage.setItem(PROJECTS,JSON.stringify(p));refreshProjects();msg(`Deleted “${name}”.`);}
 
-  function toggleNotation(){
-    renderMode=renderMode==='tab'?'standard':'tab';
-    document.getElementById('toggle-btn').textContent=renderMode==='tab'?'View Standard Score':'View Guitar Tablature';
-    processAndRender();
-  }
+function wire(){
+  $('render-main-btn').onclick=()=>{renderMode='standard';render();};$('toggle-btn').onclick=()=>{renderMode=renderMode==='tab'?'standard':'tab';render();};$('pdf-btn').onclick=exportPDF;$('midi-btn').onclick=exportMidi;
+  $('save-project-btn').onclick=saveProject;$('load-project-btn').onclick=loadProject;$('delete-project-btn').onclick=deleteProject;
+  $('import-btn').onclick=()=>$('file-input').click();$('file-input').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;input.value=await f.text();$('project-name').value=f.name.replace(/\.(abc|txt)$/i,'');localStorage.setItem(DRAFT,input.value);msg(`Imported ${f.name}.`);render(false);e.target.value='';};
+  $('export-abc-btn').onclick=()=>{const title=E.meta(input.value).title;download(input.value,`${safeName(title)}.abc`,'text/vnd.abc;charset=utf-8');msg('ABC file exported.');};
+  $('copy-btn').onclick=async()=>{try{await navigator.clipboard.writeText(input.value);msg('ABC copied to clipboard.');}catch{input.select();document.execCommand('copy');msg('ABC copied.');}};
+  input.addEventListener('input',()=>{clearTimeout(input._t);input._t=setTimeout(()=>localStorage.setItem(DRAFT,input.value),250);});
+  window.addEventListener('resize',()=>{clearTimeout(window.__gothicaResize);window.__gothicaResize=setTimeout(()=>{if($('output-wrapper').classList.contains('visible'))render(false);},300);});
+}
 
-  async function exportToPDF(){
-    const svg=document.querySelector('#sheet-music svg');
-    if(!svg||!window.jspdf?.jsPDF){showMessage('Render a score before exporting.',true);return;}
-    showMessage('Preparing paginated PDF…');
-    try{
-      const {jsPDF}=window.jspdf; const doc=new jsPDF('p','mm','a4');
-      const clone=svg.cloneNode(true); clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-      const blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'});
-      const url=URL.createObjectURL(blob); const img=new Image();
-      await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
-      const vb=svg.viewBox?.baseVal;
-      const sourceWidth=vb?.width||svg.getBoundingClientRect().width||1000;
-      const sourceHeight=vb?.height||svg.getBoundingClientRect().height||800;
-      const targetWidth=Math.min(1800,Math.max(900,Math.round(sourceWidth*1.5)));
-      const scale=targetWidth/sourceWidth,pageWidthMm=190,pageHeightMm=277;
-      const sourceSliceHeight=sourceWidth*pageHeightMm/pageWidthMm;
-      let page=0;
-      for(let sourceY=0;sourceY<sourceHeight;sourceY+=sourceSliceHeight){
-        const sourceH=Math.min(sourceSliceHeight,sourceHeight-sourceY);
-        const slice=document.createElement('canvas');
-        slice.width=targetWidth; slice.height=Math.max(1,Math.round(sourceH*scale));
-        const ctx=slice.getContext('2d',{alpha:false});
-        ctx.fillStyle='#e8dfc8'; ctx.fillRect(0,0,slice.width,slice.height);
-        ctx.drawImage(img,0,sourceY,sourceWidth,sourceH,0,0,slice.width,slice.height);
-        if(page>0) doc.addPage();
-        const hMm=pageWidthMm*slice.height/slice.width;
-        doc.addImage(slice.toDataURL('image/jpeg',.9),'JPEG',10,10,pageWidthMm,hMm,undefined,'FAST');
-        page++;
-      }
-      URL.revokeObjectURL(url); doc.save('Chiaroscuro-Gothica-Score.pdf');
-      showMessage(`PDF exported (${page} page${page===1?'':'s'}).`);
-    }catch(err){console.error(err);showMessage('PDF export failed on this device.',true);}
-  }
-
-  window.initialiseRendering=initialiseRendering;
-  window.toggleNotation=toggleNotation;
-  window.exportToPDF=exportToPDF;
-
-  const saved=localStorage.getItem(STORAGE_KEY); if(saved) input.value=saved;
-  input.addEventListener('input',()=>{
-    clearTimeout(input.saveTimer);
-    input.saveTimer=setTimeout(()=>localStorage.setItem(STORAGE_KEY,input.value),250);
-  });
-  window.addEventListener('resize',()=>{
-    clearTimeout(window.__rerenderTimer);
-    window.__rerenderTimer=setTimeout(()=>{
-      if(document.getElementById('output-wrapper').classList.contains('visible')) processAndRender();
-    },250);
-  });
-  if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
-    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
-  }
+const saved=localStorage.getItem(DRAFT);if(saved)input.value=saved;initControls();refreshProjects();wire();
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 })();
