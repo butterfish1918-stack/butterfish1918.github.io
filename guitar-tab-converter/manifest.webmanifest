@@ -1,0 +1,14 @@
+{
+  "name": "Chiaroscuro Gothica — Guitar Tab Converter",
+  "short_name": "Gothica Tabs",
+  "description": "ABC music analyser and guitar tablature converter.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1a1818",
+  "theme_color": "#1a1818",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
