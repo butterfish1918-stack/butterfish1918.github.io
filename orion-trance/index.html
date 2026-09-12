@@ -1,95 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ORION-TRANCE">
-    <meta name="description" content="ORION-TRANCE audiovisual terminal — experimental sound and visual protocols.">
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" href="./icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg">
-    <title>ORION-TRANCE | TERMINAL v6.4 MOBILE</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ORION-TRANCE">
+  <meta name="description" content="ORION-TRANCE audiovisual terminal — experimental sound and visual protocols.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>ORION-TRANCE | TERMINAL v6.5</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <canvas id="dreamCanvas"></canvas>
+  <div class="screen-noise"></div>
+  <div class="scanline"></div>
 
-    <canvas id="dreamCanvas"></canvas>
-    <div class="scanline"></div>
+  <div id="manifest" class="overlay manifest-shell">
+    <main class="terminal-frame">
+      <header class="terminal-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"><span></span></div>
+          <div>
+            <div class="eyebrow">AUDIOVISUAL PROTOCOL SYSTEM</div>
+            <div class="brand-name">ORION-TRANCE</div>
+          </div>
+        </div>
+        <div class="system-state"><span class="status-dot"></span><span>TERMINAL ONLINE</span><span class="version-tag">v6.5</span></div>
+      </header>
 
-    <!-- 1. THE MANIFEST -->
-    <div id="manifest" class="overlay">
-        <h1>// SYSTEM MANIFEST</h1>
-        
-        <div class="manifest-grid">
-            <div class="control-block">
-                <span class="label">01_PROGRAMME_SELECT</span>
-                <select id="prog-select"></select>
-            </div>
-
-            <div id="prog-desc">Select protocol...</div>
-
-            <div class="control-block">
-                <span class="label">02_DURATION_OVERRIDE</span>
-                <select id="duration-select">
-                    <option value="auto">DEFAULT</option>
-                    <option value="300">05:00 (QUICK)</option>
-                    <option value="600">10:00 (STANDARD)</option>
-                    <option value="1200">20:00 (RESET)</option>
-                    <option value="3600">60:00 (DEEP)</option>
-                    <option value="infinite">INF (LOOP)</option>
-                </select>
-            </div>
+      <section class="console-card">
+        <div class="section-heading">
+          <div><span class="section-index">01</span><span>PROTOCOL CONFIGURATION</span></div>
+          <span class="section-code">SYS/MANIFEST</span>
         </div>
 
+        <div class="config-grid">
+          <label class="field-block">
+            <span class="field-label">PROGRAMME</span>
+            <span class="select-wrap"><select id="prog-select"></select></span>
+          </label>
+          <label class="field-block">
+            <span class="field-label">DURATION OVERRIDE</span>
+            <span class="select-wrap"><select id="duration-select">
+              <option value="auto">DEFAULT</option>
+              <option value="300">05:00 / QUICK</option>
+              <option value="600">10:00 / STANDARD</option>
+              <option value="1200">20:00 / RESET</option>
+              <option value="3600">60:00 / DEEP</option>
+              <option value="infinite">INF / LOOP</option>
+            </select></span>
+          </label>
+        </div>
+
+        <div class="protocol-brief">
+          <div class="brief-kicker"><span id="prog-cat">--</span><span class="brief-rule"></span><span id="prog-duration">--:--</span></div>
+          <div id="prog-desc">Select protocol...</div>
+          <div class="protocol-meta">
+            <div><span>GOAL</span><strong id="prog-goal">—</strong></div>
+            <div><span>AUDIO</span><strong id="prog-audio">—</strong></div>
+            <div><span>VISUAL</span><strong id="prog-visual">—</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="terminal-actions">
+        <div class="footer-copy">HEADPHONES RECOMMENDED · KEEP VOLUME COMFORTABLE</div>
         <div class="btn-row">
-            <button id="manual-btn" class="term-btn secondary-btn" style="flex:1;">MANUAL</button>
-            <button id="install-btn" class="term-btn secondary-btn" style="flex:1;">INSTALL APP</button>
-            <button id="load-btn" class="term-btn" style="flex:2;">LOAD COCKPIT</button>
+          <button id="manual-btn" class="term-btn secondary-btn">MANUAL</button>
+          <button id="install-btn" class="term-btn secondary-btn">INSTALL</button>
+          <button id="load-btn" class="term-btn primary-btn"><span>LOAD COCKPIT</span><b>→</b></button>
         </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="cockpit-ui" class="hidden">
+    <div class="cockpit-vignette"></div>
+    <div class="corner corner-tl"></div><div class="corner corner-tr"></div><div class="corner corner-bl"></div><div class="corner corner-br"></div>
+    <div class="rails rail-left"><div id="rail-audio" class="rail-active" style="height:0%"></div></div>
+    <div class="rails rail-right"><div id="rail-strobe" class="rail-active" style="height:0%"></div></div>
+
+    <div class="hud-top">
+      <div class="hud-cluster"><span class="hud-label">HRV</span><strong id="hrv-val">--</strong><small>MS</small></div>
+      <div class="hud-center"><span id="cockpit-program">NO PROTOCOL</span><strong id="hud-status">IDLE</strong></div>
+      <div class="hud-cluster hud-time"><span class="hud-label">T−</span><strong id="timer-val">00:00</strong></div>
     </div>
 
-    <!-- 2. THE COCKPIT -->
-    <div id="cockpit-ui" class="hidden">
-        <div class="rails rail-left"><div id="rail-audio" class="rail-active" style="height: 0%;"></div></div>
-        <div class="rails rail-right"><div id="rail-strobe" class="rail-active" style="height: 0%;"></div></div>
+    <div class="reticle" aria-hidden="true"><span class="reticle-core"></span></div>
 
-        <div class="hud-top">
-            <div class="hud-data"><span class="hud-label">HRV</span><span id="hrv-val">--</span>ms</div>
-            <div class="hud-data" style="text-align:center;"><span id="hud-status" style="color:#666;">IDLE</span></div>
-            <div class="hud-data"><span class="hud-label">T-</span><span id="timer-val">00:00</span></div>
-        </div>
-
-        <div id="arm-container">
-            <div id="arm-track">SLIDE TO ARM &gt;&gt;&gt;</div>
-            <div id="arm-bolt">|||</div>
-        </div>
-        
-        <div id="pause-overlay">PAUSED</div>
-        
-        <div id="active-controls" class="hidden">
-             <button id="pause-btn" class="cockpit-btn">PAUSE</button>
-             <button id="stop-btn" class="cockpit-btn">STOP</button>
-        </div>
+    <div id="arm-container">
+      <div id="arm-track"><span>SLIDE TO ARM</span><b>→ → →</b></div>
+      <div id="arm-bolt">|||</div>
     </div>
 
-    <!-- 3. MANUAL -->
-    <div id="manual-overlay" class="overlay hidden">
-        <h1>// SYSTEM MANUAL</h1>
-        <div class="safety-note">PHOTOSENSITIVITY / AUDIO SAFETY: This is an experimental audiovisual app, not a medical device. Some programmes use flashing visuals and repetitive audio. Do not use while driving or if flashing light can trigger symptoms. Keep volume comfortable and stop if you feel unwell.</div>
-        <div id="manual-content" style="overflow-y:auto;flex:1;padding-right:10px;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;"></div>
-        <button id="close-manual" class="term-btn secondary-btn" style="margin-top: 20px;">CLOSE</button>
+    <div id="pause-overlay">SYSTEM PAUSED</div>
+
+    <div id="idle-controls"><button id="cockpit-back-btn" class="cockpit-btn">← MANIFEST</button></div>
+    <div id="active-controls" class="hidden">
+      <button id="pause-btn" class="cockpit-btn">PAUSE</button>
+      <button id="stop-btn" class="cockpit-btn danger-btn">TERMINATE</button>
     </div>
-    <script src="./programmes.js"></script>
-    <script src="./ui.js"></script>
-    <script src="./engine.js"></script>
-    <script src="./render.js"></script>
-    <script src="./pwa.js"></script>
+  </div>
+
+  <div id="manual-overlay" class="overlay hidden manual-shell">
+    <main class="terminal-frame manual-frame">
+      <header class="terminal-header">
+        <div class="brand-lockup"><div class="brand-mark"><span></span></div><div><div class="eyebrow">REFERENCE DATABASE</div><div class="brand-name">SYSTEM MANUAL</div></div></div>
+        <div class="version-tag">ORION-TRANCE / v6.5</div>
+      </header>
+      <div class="safety-note"><strong>SAFETY NOTICE</strong><span>This is an experimental audiovisual app, not a medical device. Some programmes use flashing visuals and repetitive audio. Do not use while driving or if flashing light can trigger symptoms. Keep volume comfortable and stop if you feel unwell.</span></div>
+      <div id="manual-content"></div>
+      <button id="close-manual" class="term-btn secondary-btn close-manual">← RETURN TO MANIFEST</button>
+    </main>
+  </div>
+
+  <script src="./programmes.js"></script>
+  <script src="./ui.js"></script>
+  <script src="./engine.js"></script>
+  <script src="./render.js"></script>
+  <script src="./pwa.js"></script>
 </body>
 </html>
