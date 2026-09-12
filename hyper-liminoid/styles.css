@@ -1,0 +1,242 @@
+:root {
+            color-scheme: dark;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #010101;
+            overscroll-behavior: none;
+        }
+        body {
+            position: fixed;
+            inset: 0;
+            font-family: "Courier New", Courier, monospace;
+            color: #3f3f46;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100dvh;
+            z-index: 1;
+            touch-action: none;
+        }
+        #ui-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            width: 100%;
+            height: 100dvh;
+            pointer-events: none;
+            padding:
+                calc(18px + var(--safe-top))
+                calc(18px + var(--safe-right))
+                calc(18px + var(--safe-bottom))
+                calc(18px + var(--safe-left));
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .brand {
+            min-width: 0;
+            padding-top: 2px;
+        }
+        .brand h1 {
+            margin: 0 0 5px;
+            font-size: 10px;
+            line-height: 1.2;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: .7em;
+            color: #18181b;
+            white-space: nowrap;
+        }
+        #active-param {
+            margin: 0;
+            font-size: 10px;
+            line-height: 1.2;
+            color: #52525b;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity .3s ease;
+            white-space: nowrap;
+        }
+        #vis-clear-container {
+            pointer-events: auto;
+            opacity: .24;
+            transition: opacity .35s ease;
+            text-align: right;
+            flex: 0 0 auto;
+        }
+        #vis-clear-container:hover,
+        #vis-clear-container:focus-within {
+            opacity: 1;
+        }
+        #vis-clear-container p {
+            margin: 0 0 4px;
+            font-size: 8px;
+            line-height: 1.2;
+            text-transform: uppercase;
+            letter-spacing: .2em;
+            color: #52525b;
+        }
+        input[type=range].subtle-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 120px;
+            height: 22px;
+            margin: 0;
+            background: transparent;
+            touch-action: pan-x;
+        }
+        input[type=range].subtle-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #71717a;
+            cursor: pointer;
+            margin-top: -6px;
+            border: 1px solid #a1a1aa;
+        }
+        input[type=range].subtle-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            background: #27272a;
+            border-radius: 1px;
+        }
+        input[type=range].subtle-slider::-moz-range-thumb {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #71717a;
+            border: 1px solid #a1a1aa;
+        }
+        input[type=range].subtle-slider::-moz-range-track {
+            height: 2px;
+            background: #27272a;
+            border-radius: 1px;
+        }
+        #start-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            background: #000;
+            transition: opacity .8s ease;
+            padding:
+                calc(24px + var(--safe-top))
+                calc(22px + var(--safe-right))
+                calc(24px + var(--safe-bottom))
+                calc(22px + var(--safe-left));
+        }
+        .start-card {
+            width: min(680px, 100%);
+            text-align: center;
+        }
+        .start-card h2 {
+            margin: 0 0 30px;
+            color: #fff;
+            font-size: clamp(16px, 4.5vw, 20px);
+            line-height: 1.35;
+            font-weight: 300;
+            letter-spacing: clamp(.35em, 2.5vw, .9em);
+            text-transform: uppercase;
+            padding-left: .7em;
+        }
+        .start-copy {
+            margin: 0 auto 34px;
+            padding: 0 0 0 24px;
+            border-left: 1px solid #18181b;
+            color: #3f3f46;
+            text-align: left;
+            font-size: 9px;
+            line-height: 1.9;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+        .start-copy p { margin: 0 0 9px; }
+        .start-copy p:last-child { margin-bottom: 0; }
+        .action-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        #start-btn, #install-btn {
+            pointer-events: auto;
+            min-height: 54px;
+            border: 1px solid #18181b;
+            background: transparent;
+            color: #71717a;
+            font: inherit;
+            font-size: 10px;
+            letter-spacing: .42em;
+            text-transform: uppercase;
+            padding: 18px 28px 18px 32px;
+            transition: border-color .3s ease, color .3s ease, background .3s ease;
+            cursor: pointer;
+        }
+        #start-btn:hover, #start-btn:focus-visible,
+        #install-btn:hover, #install-btn:focus-visible {
+            border-color: #064e3b;
+            color: #fff;
+            outline: none;
+        }
+        #install-btn[hidden] { display: none; }
+        .mobile-help {
+            margin: 22px auto 0;
+            color: #27272a;
+            font-size: 8px;
+            line-height: 1.6;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+        @media (max-width: 560px) {
+            #ui-layer {
+                padding:
+                    calc(12px + var(--safe-top))
+                    calc(12px + var(--safe-right))
+                    calc(12px + var(--safe-bottom))
+                    calc(12px + var(--safe-left));
+            }
+            .brand h1 { font-size: 8px; letter-spacing: .38em; }
+            #active-param { font-size: 8px; letter-spacing: .12em; max-width: 48vw; overflow: hidden; text-overflow: ellipsis; }
+            #vis-clear-container p { font-size: 7px; }
+            input[type=range].subtle-slider { width: 92px; }
+            .start-card h2 { margin-bottom: 24px; }
+            .start-copy { font-size: 8px; padding-left: 16px; margin-bottom: 28px; }
+            #start-btn, #install-btn {
+                width: min(100%, 310px);
+                letter-spacing: .3em;
+                padding: 17px 18px 17px 22px;
+            }
+        }
+        @media (orientation: landscape) and (max-height: 500px) {
+            #start-overlay { align-items: stretch; overflow: auto; }
+            .start-card { margin: auto; padding: 10px 0; }
+            .start-card h2 { margin-bottom: 14px; font-size: 14px; }
+            .start-copy { margin-bottom: 14px; line-height: 1.45; }
+            .start-copy p { margin-bottom: 4px; }
+            .mobile-help { margin-top: 10px; }
+            #start-btn, #install-btn { min-height: 42px; padding-top: 12px; padding-bottom: 12px; }
+        }
