@@ -1,5 +1,5 @@
-const CACHE='music-sketch-v0.8-pages';
-const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./payload/v08-shell1.txt","./payload/v08-shell2.txt","./payload/v08-shell3.txt","./payload/v08-style1.txt","./payload/v08-style2.txt","./payload/v08-style3.txt","./payload/v08-style4.txt","./payload/v08-app1.txt","./payload/v08-app2.txt","./payload/v08-app3.txt","./payload/v08-app4.txt"];
+const CACHE='music-sketch-v0.9-pages';
+const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./payload/v09-shell1.txt","./payload/v09-shell2.txt","./payload/v09-shell3.txt","./payload/v09-style.txt","./payload/v09-app1.txt","./payload/v09-app2.txt","./payload/v09-app3.txt","./payload/v09-app4.txt","./payload/v09-app5.txt","./payload/v09-app6.txt","./payload/v09-app7.txt","./payload/v09-app8.txt"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE&&k.startsWith('music-sketch-')).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r;}).catch(()=>e.request.mode==='navigate'?caches.match('./index.html'):Promise.reject(new Error('offline')))));});
