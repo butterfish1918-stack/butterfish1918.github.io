@@ -1,7 +1,12 @@
-const CACHE_NAME = 'hyper-liminoid-v11-2-mobile-1';
+const CACHE_NAME = 'hyper-liminoid-v11-2-mobile-2';
 const APP_SHELL = [
   './',
   './index.html',
+  './styles.css',
+  './core.js',
+  './visual.js',
+  './interaction.js',
+  './bootstrap.js',
   './manifest.webmanifest',
   './icon.svg'
 ];
