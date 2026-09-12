@@ -1,0 +1,127 @@
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="border-t border-[#5c4a3d] pt-3">
+                       <span className="text-[9px] text-[#8b7355] uppercase font-mono flex items-center gap-1 mb-2"><Activity size={10} /> Phase-Space Attractor</span>
+                       <div className="bg-[#050505] border border-[#1f1a14] h-24 relative flex items-center justify-center">
+                         <canvas ref={attractorCanvasRef} width={100} height={100} className="w-full h-full max-w-[96px] max-h-[96px]" />
+                       </div>
+                    </div>
+
+                    <div className="border-t border-[#5c4a3d] pt-3">
+                       <span className="text-[9px] text-[#8b7355] uppercase font-mono flex items-center gap-1 mb-2"><BarChart3 size={10} /> Neural Convergence</span>
+                       <div className="flex items-end gap-[2px] h-24 bg-[#050505] border border-[#1f1a14] p-1 overflow-hidden">
+                         {sessionHistory.length === 0 ? <span className="text-[#5c4a3d] text-[9px] font-mono self-center w-full text-center">Awaiting Data</span> : 
+                           sessionHistory.map((s, i) => (
+                             <div key={i} className="w-4 bg-gradient-to-t from-[#8b7355] to-[#a3e635] transition-all" 
+                                  style={{ height: `${Math.max(5, (100 - s.centError) * 0.9)}px`, opacity: s.score / 100 }} 
+                                  title={`Attempt ${s.attempt}: ${s.centError.toFixed(1)} cents off`}
+                             ></div>
+                           ))
+                         }
+                       </div>
+                    </div>
+                </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: Canvases & Action Triggers */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            
+            <div className="relative">
+              <h3 className="text-xs font-deco uppercase text-[#d4af37] mb-4 border-b border-[#8b7355] pb-2 font-bold flex justify-between">
+                Target Intervallic Projection (Spectral Mapping)
+                {isLiveMode && <span className="radium-text animate-pulse">LIVE CONTINUOUS FEED</span>}
+              </h3>
+
+              <div className="mb-4">
+                <div className="bg-[#050505] p-4 border border-[#5c4a3d] shadow-[inset_0_0_15px_rgba(0,0,0,0.9)] flex flex-wrap gap-2 min-h-[64px] items-center custom-scrollbar overflow-y-auto max-h-[150px]">
+                  {targetSequence.length === 0 ? <span className="text-[#8b7355] italic text-sm font-mono">Awaiting structural sequence...</span> : 
+                    targetSequence.map((note, i) => (
+                      <span key={i} className="inline-block bg-[#1f1a14] text-[#d4af37] px-2 py-1 font-mono text-sm border border-[#8b7355]" title={`${note.hz.toFixed(2)} Hz`}>
+                        {note.display}
+                      </span>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Canvas 2: Absolute Spaceframe */}
+            <div className={`art-deco-border p-2 bg-[#0a0a0a] transition-all duration-500 relative ${isLiveMode ? 'border-[#a3e635] shadow-[0_0_20px_rgba(163,230,53,0.15)] h-[500px]' : 'h-[240px]'}`}>
+              
+              <div ref={pitchOverlayRef} style={{ display: 'none' }} className="absolute top-6 left-6 bg-[#1f1a14] text-[#a3e635] text-xs font-mono px-3 py-1 border border-[#a3e635] shadow-[0_0_10px_rgba(163,230,53,0.4)] z-20 flex items-center gap-2">
+                <Activity size={14} className="animate-pulse" />
+                <span ref={pitchTextRef}>Pitch: -- (0Hz)</span>
+              </div>
+
+              <div id="absolute-scroll-wrapper" className="relative overflow-x-auto overflow-y-hidden border border-[#5c4a3d] bg-[#050505] custom-scrollbar h-full">
+                <canvas ref={canvasRef} width={800} height={isLiveMode ? 480 : 220} className={`${isLiveMode ? 'h-[480px]' : 'h-[220px]'} block min-w-full transition-all duration-500`} />
+              </div>
+            </div>
+            
+            {/* Canvas 1: Relative Spaceframe */}
+            <div className={`art-deco-border p-2 bg-[#0a0a0a] transition-opacity relative ${isLiveMode ? 'opacity-20 grayscale pointer-events-none' : ''}`}>
+              <div id="personal-scroll-wrapper" className="relative overflow-x-auto overflow-y-hidden border border-[#5c4a3d] bg-[#050505] custom-scrollbar">
+                <canvas ref={personalCanvasRef} width={800} height={150} className="h-[150px] block min-w-full opacity-90" />
+              </div>
+            </div>
+
+            {/* Brass Levers / Controls */}
+            <div className="flex flex-col md:flex-row gap-4 mt-2">
+              <button id="synthesize-btn" onClick={playSyllable} disabled={isRecording || isLiveMode || isPlayingComparison || isCalibrating || targetSequence.length === 0} className="deco-button flex-1 flex items-center justify-center gap-2 py-4 font-deco text-xs uppercase text-[#d4af37] hover:text-[#fde047]">
+                <Volume2 size={16} /> Synthesise ['S']
+              </button>
+
+              <button id="live-training-btn" onClick={toggleLiveTraining} disabled={isPlayingComparison || isCalibrating || targetSequence.length === 0 || (isRecording && !isLiveMode)} className={`deco-button flex-1 flex items-center justify-center gap-2 py-4 font-deco text-xs uppercase ${isLiveMode ? 'deco-button-radium' : 'text-[#d4af37]'}`}>
+                {isWarmingUp && isLiveMode ? <Settings size={16} className="animate-spin" /> : <Radio size={16} className={isLiveMode ? 'animate-pulse' : ''} />}
+                {isLiveMode ? "Halt Live Feed ['L']" : "Live Monitor ['L']"}
+              </button>
+
+              <div className="flex flex-col gap-2 flex-1">
+                  <button onClick={() => setIsLombardMode(!isLombardMode)} disabled={isRecording || isLiveMode || isPlayingComparison} className={`deco-button flex items-center justify-center gap-2 py-2 font-deco text-[10px] uppercase ${isLombardMode ? 'text-[#dc2626] border-[#dc2626]' : 'text-[#d4af37]'}`} title="Lombard Effect Protocol (Industrial Masking)">
+                    <Speaker size={14} className={isLombardMode ? "opacity-100" : "opacity-50"} />
+                    Lombard Mask ['M']
+                  </button>
+                  
+                  <button onClick={() => setIsVoidMode(!isVoidMode)} disabled={isRecording || isLiveMode || isPlayingComparison} className={`deco-button flex items-center justify-center gap-2 py-2 font-deco text-[10px] uppercase ${isVoidMode ? 'text-[#dc2626] border-[#dc2626]' : 'text-[#d4af37]'}`} title="Phonological Loop Protocol (Blind Mode)">
+                    <EyeOff size={14} className={isVoidMode ? "opacity-100" : "opacity-50"} />
+                    Void Mask ['V']
+                  </button>
+              </div>
+
+              <button id="brutalist-record-btn" onClick={isRecording && !isLiveMode ? stopRecording : () => startRecording(false)} disabled={isPlayingComparison || isCalibrating || targetSequence.length === 0 || isLiveMode || isWarmingUp} className={`deco-button flex-[1.5] flex items-center justify-center gap-2 py-4 font-deco text-xs uppercase ${isRecording && !isLiveMode ? 'deco-button-radium' : 'text-[#d4af37]'}`}>
+                {isWarmingUp && !isLiveMode ? <Settings size={16} className="animate-spin" /> : (isRecording && !isLiveMode ? <Square size={16} /> : <Mic size={16} />)}
+                {isRecording && !isLiveMode ? "Seal Archive ['R']" : "Initiate Extraction ['R']"}
+              </button>
+            </div>
+
+            {recordedAudioUrl && !isLiveMode && (
+              <button id="juxtapose-btn" onClick={toggleComparison} disabled={isRecording || isCalibrating} className="deco-button w-full flex items-center justify-center gap-2 py-3 font-deco text-xs uppercase text-[#d4af37]">
+                <Activity size={16} className={isPlayingComparison ? "text-[#a3e635] animate-pulse" : ""} />
+                {isPlayingComparison ? "Halt Juxtaposition ['C']" : "Juxtapose: Machine Truth vs Organic Decay ['C']"}
+              </button>
+            )}
+
+            {/* Typewriter / Diagnostic Panel */}
+            <div className="bg-[#050505] p-5 border border-[#5c4a3d] relative shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-[#d4af37]"></div>
+              <div className="font-mono text-sm flex items-start gap-4">
+                <Info className="text-[#d4af37] shrink-0 mt-0.5" size={18} />
+                <div className="text-[#b8a078] w-full max-w-full">
+                  <strong className="text-[#8b7355] block mb-2 uppercase font-deco border-b border-[#3e3324] pb-1 text-xs tracking-widest">Diagnostic Output:</strong>
+                  <div className="leading-relaxed w-full overflow-x-auto" dangerouslySetInnerHTML={{__html: feedback.replace(/'(.*?)'/g, '<span class="text-[#d4af37] font-bold">$1</span>')}} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
