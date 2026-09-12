@@ -1,0 +1,9 @@
+.play-button.is-playing::before { content: "Ⅱ"; font-size: 15px; transform: translateY(-4px); }
+.help-card { touch-action: pan-y; -webkit-user-select: text; user-select: text; scrollbar-width: thin; scrollbar-color: #3f3f46 transparent; }
+.help-card::-webkit-scrollbar { width: 6px; }
+.help-card::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 999px; }
+.help-menu[open] { z-index: 90; }
+.audio-gate ~ * #heliocentric-ui { opacity: 0; }
+@media (hover: none) {
+  .float-button:hover, .engage-button:hover, .help-menu > summary:hover { transform: none; }
+}
