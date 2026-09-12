@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Heliocentric" />
+  <meta name="description" content="Heliocentric — a 16-track generative FM rhythm engine." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./heliocentric-icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Heliocentric</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="../vendor/react.development.js"></script>
+  <script src="../vendor/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.9.17/Tone.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="../vendor/babel.min.js"></script>
+  <script src="./loader.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}));
+    }
+  </script>
+</body>
+</html>
