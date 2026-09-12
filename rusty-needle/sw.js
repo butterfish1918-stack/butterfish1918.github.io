@@ -1,4 +1,4 @@
-const CACHE = 'rusty-needle-v1';
+const CACHE = 'rusty-needle-v2';
 const APP_SHELL = ['./index.html', './styles-1.css', './styles-2.css', './styles-3.css', './styles-4.css', './app-1.js', './app-2.js', './app-3.js', './app-4.js', './app-5.js', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
