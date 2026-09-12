@@ -1,0 +1,174 @@
+:root {
+            --bg-color: #000000;
+            --dim-color: #333333;
+            --mid-color: #555555;
+            --text-color: #a0a0a0;
+            --accent-color: #00ffff;
+            --active-green: #00ff00;
+            --active-purple: #bd00ff;
+            --active-red: #ff3300;
+            --danger-color: #ff3300;
+            --font-mono: 'Space Mono', monospace;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        /* I. VISUAL PHILOSOPHY */
+        body, html {
+            margin: 0; padding: 0; overflow: hidden;
+            background: var(--bg-color); color: var(--text-color);
+            font-family: var(--font-mono);
+            height: 100%; min-height: 100dvh; width: 100%; user-select: none; touch-action: manipulation;
+            overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: none;
+        }
+
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; width: 100%; height: 100%; }
+
+        /* II. TYPOGRAPHY & LAYOUT */
+        .overlay {
+            position: absolute; z-index: 100; top: 0; left: 0;
+            width: 100%; height: 100dvh; background: var(--bg-color);
+            display: flex; flex-direction: column;
+            padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+            box-sizing: border-box; overflow: hidden;
+        }
+        
+        .hidden { display: none !important; }
+
+        h1 { 
+            font-size: 0.8rem; letter-spacing: 2px; color: var(--accent-color); 
+            border-bottom: 1px solid var(--dim-color); padding-bottom: 10px; margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        /* THE MANIFEST */
+        .manifest-grid {
+            display: grid; grid-template-columns: 1fr; gap: 20px;
+            overflow-y: auto; padding-bottom: 80px; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+        }
+        
+        .control-block {
+            border-left: 1px solid var(--dim-color); padding-left: 15px;
+        }
+
+        .label {
+            font-family: var(--font-mono); font-size: 0.65rem; color: var(--mid-color);
+            text-transform: uppercase; margin-bottom: 8px; display: block;
+        }
+
+        select {
+            width: 100%; background: #000; color: #fff; border: 1px solid var(--dim-color);
+            padding: 10px; min-height: 48px; font-family: var(--font-mono); font-size: 0.8rem;
+            outline: none; appearance: none; border-radius: 0;
+            cursor: pointer; transition: border-color 0.2s;
+        }
+        select:focus { border-color: var(--accent-color); }
+        select optgroup { background: #111; color: #aaa; }
+        
+        #prog-desc {
+            font-family: var(--font-sans); font-size: 0.8rem; color: #fff;
+            border: 1px solid var(--dim-color); padding: 10px; min-height: 3em;
+            display: flex; align-items: center; background: #050505;
+        }
+
+        .term-btn {
+            background: #000; border: 1px solid var(--accent-color); color: var(--accent-color);
+            padding: 15px; min-height: 48px; font-family: var(--font-mono); font-weight: bold; text-transform: uppercase;
+            cursor: pointer; transition: all 0.1s; letter-spacing: 1px; font-size: 0.8rem;
+        }
+        .term-btn:active { background: var(--accent-color); color: #000; }
+        .term-btn:hover { box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
+
+        .btn-row { display: flex; gap: 10px; margin-top: auto; }
+        .secondary-btn { border-color: var(--mid-color); color: var(--mid-color); }
+        .secondary-btn:hover { border-color: #fff; color: #fff; }
+
+        /* III. THE COCKPIT */
+        #cockpit-ui {
+            position: absolute; z-index: 10; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; padding: 20px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .hud-top { display: flex; justify-content: space-between; width: 100%; }
+        .hud-data { font-size: 0.7rem; color: var(--accent-color); font-family: var(--font-mono); }
+        .hud-label { color: var(--mid-color); margin-right: 5px; }
+
+        .rails { position: absolute; top: 0; height: 100%; width: 1px; background: #111; }
+        .rail-left { left: 10px; }
+        .rail-right { right: 10px; }
+        .rail-active { position: absolute; bottom: 0; width: 100%; background: var(--accent-color); transition: height 0.05s linear; }
+
+        #arm-container {
+            width: min(100%, 340px); max-width: 340px; height: 56px;
+            border: 1px solid var(--dim-color); background: #050505;
+            position: relative; align-self: center; pointer-events: auto;
+            margin-bottom: calc(48px + env(safe-area-inset-bottom)); overflow: hidden; touch-action: none;
+        }
+        #arm-track {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; color: var(--mid-color); letter-spacing: 2px; z-index: 0;
+        }
+        #arm-bolt {
+            width: 50px; height: 100%; background: var(--dim-color);
+            position: absolute; left: 0; top: 0; cursor: grab; z-index: 1;
+            display: flex; align-items: center; justify-content: center;
+            color: #000; font-weight: bold; border-right: 1px solid #000;
+        }
+        #arm-bolt:active { background: var(--accent-color); cursor: grabbing; }
+
+        #active-controls {
+            position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); right: calc(16px + env(safe-area-inset-right)); pointer-events: auto;
+            display: flex; gap: 10px;
+        }
+        
+        .cockpit-btn {
+            background: rgba(0,0,0,0.8); border: 1px solid var(--dim-color); color: var(--text-color);
+            font-family: var(--font-mono); font-size: 0.7rem; padding: 12px 16px; min-height: 44px; cursor: pointer;
+            backdrop-filter: blur(5px); transition: 0.2s;
+        }
+        .cockpit-btn:hover { border-color: #fff; color: #fff; }
+        
+        #stop-btn { border-color: var(--danger-color); color: var(--danger-color); }
+        #stop-btn:hover { background: var(--danger-color); color: #fff; }
+        #pause-btn.paused { background: var(--accent-color); color: #000; border-color: var(--accent-color); }
+
+        /* IV. MANUAL */
+        .manual-text { color: #888; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.6; }
+        .man-header { color: var(--accent-color); border-bottom: 1px solid #333; margin-top: 20px; padding-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+
+        /* Animations */
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 2px;
+            background: rgba(0, 255, 255, 0.05); animation: scanline 4s linear infinite; pointer-events: none; z-index: 50;
+        }
+        .glitch-anim { animation: v-hold 0.1s infinite; filter: invert(1); }
+        @keyframes v-hold { 0% { transform: translateX(0); } 20% { transform: translateX(-5px); } 80% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+        
+        #pause-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2rem; color: var(--accent-color); font-weight: bold; letter-spacing: 10px;
+            pointer-events: none; display: none; z-index: 20;
+        }
+
+
+        .safety-note {
+            margin: 0 0 18px; padding: 12px; border: 1px solid #5a3a00;
+            background: #120d00; color: #d7b96c; font: 0.68rem/1.55 var(--font-mono);
+        }
+        #install-btn { display: none; }
+        #install-btn.visible { display: block; }
+        @media (max-width: 600px) {
+            h1 { margin-bottom: 14px; }
+            .manifest-grid { gap: 14px; padding-bottom: 24px; }
+            .btn-row { gap: 8px; flex-wrap: wrap; }
+            .btn-row .term-btn { flex: 1 1 45% !important; }
+            #cockpit-ui { padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
+            .hud-data { font-size: 0.62rem; }
+            #active-controls { left: calc(16px + env(safe-area-inset-left)); right: calc(16px + env(safe-area-inset-right)); justify-content: flex-end; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .scanline, .glitch-anim { animation: none !important; }
+        }
