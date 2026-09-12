@@ -1,0 +1,102 @@
+/* =========================================================
+   v2.1.1 VISIBILITY / SAFE-AREA PASS
+   Preserve the aquatic bullseyes without allowing them to
+   crop or crowd functional UI.
+   ========================================================= */
+html,body{max-width:100%;overflow-x:hidden}
+main{min-width:0;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+header{min-width:0;gap:12px}
+header>div{min-width:0;max-width:calc(100% - 54px)}
+header small{display:block;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+header .icon{flex:0 0 auto}
+
+/* Bullseyes are decorative layers only; actual content always wins. */
+.hero,.card,.stats .card{isolation:isolate;overflow:visible}
+.hero::before,.hero::after,.card::before{z-index:0}
+.hero>* ,.card>* ,.stats .card>*{position:relative;z-index:3}
+.hero{padding:30px 30px;gap:18px}
+.hero>div:first-child{min-width:0;max-width:calc(100% - 80px)}
+.hero strong,.hero p,.card h2,.card p,.stats .card strong{overflow-wrap:anywhere;word-break:break-word}
+.hero .orb{flex:0 0 58px;align-self:flex-end}
+.card{padding:24px}
+.stats .card{min-width:0;padding:22px}
+
+/* Keep form controls and search fields inside their viewport. */
+.search{grid-template-columns:minmax(0,1fr) minmax(96px,auto);min-width:0}
+.search>* ,.grid2>* ,.row>*{min-width:0}
+input,select,textarea{max-width:100%}
+.row{min-width:0;flex-wrap:wrap}
+.track{min-width:0}
+.pressureRow{grid-template-columns:minmax(70px,90px) minmax(0,1fr) 25px}
+
+/* The task organism may morph, but its content occupies a fixed safe core. */
+#flowList .task{box-sizing:border-box;overflow:visible;min-width:0}
+#flowList .task::before{z-index:1;inset:12px;opacity:.28}
+#flowList .task::after{z-index:0}
+#flowList .task>div[data-edit]{z-index:4;width:78%;max-width:205px;min-width:0;padding:8px 0}
+#flowList .task h3{width:100%;max-width:100%;margin-inline:auto;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
+#flowList .meta{width:100%;max-width:100%;justify-content:center;align-items:center}
+#flowList .pill{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center}
+#flowList .notes{width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+#flowList .subline{max-width:100%;overflow-wrap:anywhere}
+#flowList .done,#flowList .menu{isolation:isolate}
+
+/* Today uses organic silhouettes too, but never clips information. */
+#todayList .task{min-width:0;overflow:visible}
+#todayList .task>div[data-edit]{min-width:0}
+#todayList .task h3,#todayList .notes,#todayList .pill{overflow-wrap:anywhere;word-break:break-word}
+
+/* Decorative depth labels should fit completely inside the water column. */
+#flowList .group::before{max-width:94%;text-align:center;letter-spacing:.24em}
+#flowList .groupTitle{min-width:0}
+
+/* Bottom navigation respects notches / rounded display edges. */
+.bottom-nav{left:max(9px,env(safe-area-inset-left));right:max(9px,env(safe-area-inset-right));max-width:calc(100vw - 18px)}
+.bottom-nav .nav-button{min-width:0;overflow:visible}
+.bottom-nav .nav-button span{max-width:100%;white-space:nowrap}
+
+/* Dialog sheets must always remain fully reachable. */
+dialog{max-width:100vw;max-height:100svh}
+dialog form,dialog .sheet{width:100%;max-width:100%;max-height:calc(100svh - max(8px,env(safe-area-inset-top)));padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));padding-bottom:max(22px,env(safe-area-inset-bottom))}
+.actions{flex-wrap:wrap}.actions .primary{min-width:160px}.actions .danger{flex:0 1 auto}
+
+@media (min-width:900px){
+  main{padding-left:34px;padding-right:34px}
+  .hero{padding:32px 34px}
+  #flowList .task>div[data-edit]{width:76%;max-width:215px}
+}
+
+/* Phone layout: one generously-sized organism per row so its bullseye
+   never has to compete with task text or controls. */
+@media (max-width:560px){
+  main{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+  header small{font-size:8px;letter-spacing:.16em}
+  .hero{min-height:188px;padding:25px 22px;border-radius:30% 70% 64% 36%/34% 44% 56% 66%}
+  .hero>div:first-child{max-width:calc(100% - 68px)}
+  .hero strong{font-size:clamp(52px,17vw,68px)}
+  .hero .orb{width:54px;height:54px;flex-basis:54px}
+  .card{padding:22px 20px;border-radius:22% 78% 68% 32%/30% 42% 58% 70%}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats .card{padding:20px 16px;min-height:112px}
+  .stats .card strong{font-size:28px}
+  .search{grid-template-columns:minmax(0,1fr) minmax(92px,34%)}
+  #flowList .group{grid-template-columns:1fr;gap:30px;min-height:0;padding:66px 4px 52px}
+  #flowList .group::before{top:26px;font-size:clamp(18px,6.3vw,25px);letter-spacing:.11em;width:100%;max-width:100%;white-space:nowrap}
+  #flowList .task{width:min(82vw,310px);min-height:236px;aspect-ratio:1.04;padding:42px 24px 32px;margin-inline:auto}
+  #flowList .task>div[data-edit]{width:74%;max-width:215px;padding:12px 0}
+  #flowList .task h3{font-size:12px;line-height:1.5;letter-spacing:.075em}
+  #flowList .meta{font-size:8px;gap:5px}
+  #flowList .notes{display:-webkit-box!important;font-size:9px;-webkit-line-clamp:2}
+  #flowList .done{top:22px;left:25px;width:26px;height:26px}
+  #flowList .menu{top:18px;right:22px}
+  #todayList .task{padding:16px 14px;grid-template-columns:auto minmax(0,1fr) auto}
+}
+
+@media (max-width:380px){
+  .search{grid-template-columns:1fr}.search select{width:100%}
+  .grid2{grid-template-columns:1fr}
+  .hero{padding:23px 18px}.hero>div:first-child{max-width:calc(100% - 62px)}
+  #flowList .task{width:min(88vw,292px);min-height:226px;padding-inline:20px}
+  #flowList .task>div[data-edit]{width:76%}
+  .pressureRow{grid-template-columns:70px minmax(0,1fr) 22px;gap:7px}
+}
