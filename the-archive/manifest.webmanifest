@@ -1,7 +1,7 @@
 {
-  "name": "The Archive · Wardrobe OS",
+  "name": "The Archive · Wardrobe Intelligence",
   "short_name": "The Archive",
-  "description": "Personal wardrobe, outfit, wear-history, planning and olfactory operating system.",
+  "description": "Personal wardrobe, outfit, care, travel, calendar, olfactory and style-intelligence operating system.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -9,7 +9,7 @@
   "orientation": "any",
   "background_color": "#121110",
   "theme_color": "#121110",
-  "categories": ["lifestyle", "utilities"],
+  "categories": ["lifestyle", "utilities", "productivity"],
   "icons": [
     { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
