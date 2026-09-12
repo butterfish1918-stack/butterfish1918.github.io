@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="INTAKE // OS">
+    <meta name="description" content="A tactile breathing protocol timer with procedural audio and reactive visuals.">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <title>INTAKE // OS v3.0</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+    <!-- VISUAL ENGINE -->
+    <div id="canvas-container">
+        <canvas id="fluidCanvas"></canvas>
+    </div>
+
+    <!-- ACTIVE HUD -->
+    <div id="ui-layer">
+        <!-- Breath Guide Element -->
+        <div id="breath-guide"></div>
+
+        <div id="active-hud">
+            <div class="hud-top">
+                <span id="current-mode-name">MODE: NULL</span>
+                <span id="litres-display">CYCLES: 0</span>
+            </div>
+            
+            <div id="center-display">
+                <div id="timer">00:00</div>
+                <div id="phase-label">INIT</div>
+                <div class="session-controls">
+                    <button id="sound-btn" aria-pressed="true">AUDIO: ON</button>
+                    <button id="stop-btn">TERMINATE</button>
+                </div>
+            </div>
+
+            <div class="hud-bottom">
+                <span id="freq-display">HZ: --</span>
+                <span>STATUS: ACTIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU SYSTEM -->
+    <div id="menu-layer">
+        <div class="menu-header">
+            <h1>INTAKE // OS</h1>
+            <div class="config-row">
+                <label for="duration-input">DURATION (MIN):</label>
+                <input type="number" id="duration-input" value="5" min="1" max="60" inputmode="numeric">
+            </div>
+            <div class="toggle-row">
+                <label class="toggle"><input type="checkbox" id="audio-toggle" checked> AUDIO</label>
+                <label class="toggle"><input type="checkbox" id="haptics-toggle" checked> HAPTICS</label>
+                <label class="toggle"><input type="checkbox" id="wake-toggle" checked> KEEP AWAKE</label>
+            </div>
+            <button id="install-btn" class="hidden">INSTALL ON DEVICE</button>
+        </div>
+        <div id="protocol-container">
+            <!-- Populated via JS -->
+        </div>
+        <div class="safety-note">Use seated or lying down. Never use breath-hold or rapid-breath protocols while driving, in water, or where fainting could cause injury. Stop if you feel dizzy, numb, or unwell.</div>
+    </div>
+
+    <script src="./data.js"></script>
+    <script src="./engine.js"></script>
+    <script src="./app.js"></script>
+</body>
+</html>
