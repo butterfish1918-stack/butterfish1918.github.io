@@ -1,191 +1,184 @@
 const { useState, useEffect, useRef, useCallback } = React;
-
 // --- Constants & Harmonic Architecture ---
 const TOTAL_TRACKS = 16;
 const STEPS = 16;
 const FUNDAMENTAL_DEFAULT = 65.41; // C2
-
 const RATIOS = [
-  1, 1.5, 2, 2.5, // Foundation
-  3, 4, 5, 1,     // Body
-  6, 8, 9, 10,    // Metal
-  1, 12, 15, 1    // Aether
+    1, 1.5, 2, 2.5, // Foundation
+    3, 4, 5, 1, // Body
+    6, 8, 9, 10, // Metal
+    1, 12, 15, 1 // Aether
 ];
-
 // Noise and Spline Approximations
 const pseudoNoise = (t) => Math.sin(t) * Math.cos(t * 0.5) * Math.sin(t * 0.2);
-
 const getTrackColor = (index, luminance = 50, saturation = 80) => {
-  let hue = 0;
-  if (index < 4) hue = 0 + (index * 15);
-  else if (index < 10) hue = 60 + ((index - 4) * 25);
-  else hue = 180 + ((index - 10) * 25);
-  const dynamicSat = Math.min(100, saturation + (index * 1.5));
-  return `hsla(${hue}, ${dynamicSat}%, ${luminance}%, 1)`;
+    let hue = 0;
+    if (index < 4)
+        hue = 0 + (index * 15);
+    else if (index < 10)
+        hue = 60 + ((index - 4) * 25);
+    else
+        hue = 180 + ((index - 10) * 25);
+    const dynamicSat = Math.min(100, saturation + (index * 1.5));
+    return `hsla(${hue}, ${dynamicSat}%, ${luminance}%, 1)`;
 };
-
 const getTrackLabel = (index) => {
-  const labels = [
-    "Great Sub", "Deep Kettle", "Earth Pulse", "Resonant Boom",
-    "Clay Pot", "Bamboo Strike", "Hollow Log", "Soft Snap",
-    "Meditation Gong", "Singing Bowl", "Temple Bell", "Silver Plate",
-    "Sand Shaker", "Glass Tinkle", "Rain Drop", "Star Dust"
-  ];
-  return labels[index];
+    const labels = [
+        "Great Sub", "Deep Kettle", "Earth Pulse", "Resonant Boom",
+        "Clay Pot", "Bamboo Strike", "Hollow Log", "Soft Snap",
+        "Meditation Gong", "Singing Bowl", "Temple Bell", "Silver Plate",
+        "Sand Shaker", "Glass Tinkle", "Rain Drop", "Star Dust"
+    ];
+    return labels[index];
 };
-
 function App() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [bpm, setBpm] = useState(120);
-  const [masterVol, setMasterVol] = useState(-10);
-  const [selectedTrack, setSelectedTrack] = useState(null);
-  const [isAudioStarted, setIsAudioStarted] = useState(false);
-
-  // Global Horizon State
-  const [elasticity, setElasticity] = useState(0);
-  const [entropy, setEntropy] = useState(0);
-  const [harmonicMorph, setHarmonicMorph] = useState(0);
-  const [rootFreq, setRootFreq] = useState(FUNDAMENTAL_DEFAULT);
-  const [feedbackIntensity, setFeedbackIntensity] = useState(0);
-  
-  // Aura State
-  const [auraZoom, setAuraZoom] = useState(1.0);
-  const [visualPersistence, setVisualPersistence] = useState(0.2);
-  const [geoPrimitive, setGeoPrimitive] = useState(6); 
-
-  // Interaction State
-  const [isDragging, setIsDragging] = useState(null); 
-  const [focusedParam, setFocusedParam] = useState(null); 
-  const dragStartData = useRef({ dist: 0, val: 0 });
-  const mousePos = useRef({ x: 0, y: 0 });
-
-  // Chromatic Nebula Stains Logic
-  const stains = useRef(Array.from({ length: 4 }, (_, i) => ({
-    angle: (i / 4) * Math.PI * 2,
-    speed: (Math.random() - 0.5) * 0.01,
-    hue: Math.random() * 360,
-    size: 150 + Math.random() * 100,
-    phase: Math.random() * Math.PI * 2
-  })));
-
-  const auraLogic = useRef({
-    rotation: 0,
-    rotationSpeed: 0.005,
-    chaosThickness: 1,
-    chaosOpacity: 0.2,
-    chaosPoints: 6,
-    hatJitter: 0
-  });
-
-  const [tracks, setTracks] = useState(Array.from({ length: TOTAL_TRACKS }, (_, i) => ({
-    id: i,
-    pattern: Array(STEPS).fill(false),
-    ratio: 1.0, fmRatio: 1.0, fmIndex: 2, inharmonicity: 0,
-    decay: 0.5, pitchDepth: 0.1, pitchTime: 0.05,
-    cutoff: 0.8, filterQ: 1, probability: 1.0,
-    lfoSpeed: 0.1, pan: (i % 2 === 0 ? -0.5 : 0.5), reverbSend: 0.2,
-    jitter: 0.005, vibration: 0, cycleLength: 16
-  })));
-
-  const tracksRef = useRef(tracks);
-  const synthRefs = useRef([]);
-  const canvasRef = useRef(null);
-  const requestRef = useRef(null);
-  const particlesRef = useRef([]); 
-  const auraParticlesRef = useRef([]); 
-  const activeTriggersRef = useRef([]); 
-  const resonanceNode = useRef(null);
-  const globalReverb = useRef(null);
-  const kickEnergyRef = useRef(0); 
-  const barCountRef = useRef(0);
-  const globalParamsRef = useRef({ entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity });
-  const dimensions = useRef({
-    w: typeof window !== 'undefined' ? window.innerWidth : 1,
-    h: typeof window !== 'undefined' ? window.innerHeight : 1,
-    dpr: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      dimensions.current = { w, h, dpr };
-      if (canvasRef.current) {
-        canvasRef.current.width = Math.round(w * dpr);
-        canvasRef.current.height = Math.round(h * dpr);
-        canvasRef.current.style.width = `${w}px`;
-        canvasRef.current.style.height = `${h}px`;
-      }
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
-    window.addEventListener('orientationchange', handleResize, { passive: true });
-    handleResize();
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
-  useEffect(() => { tracksRef.current = tracks; }, [tracks]);
-  useEffect(() => {
-    globalParamsRef.current = { entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity };
-  }, [entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity]);
-
-  // --- Chaos Engine: Randomise Everything ---
-  const randomiseEverything = useCallback(() => {
-    // 1. Randomise Global Settings (except Volume)
-    setBpm(60 + Math.random() * 180);
-    setElasticity(Math.random());
-    setEntropy(Math.random());
-    setHarmonicMorph(Math.random());
-    setRootFreq(40 + Math.random() * 60);
-    setFeedbackIntensity(Math.random());
-    setAuraZoom(0.5 + Math.random() * 1.5);
-    setVisualPersistence(0.1 + Math.random() * 0.6);
-    setGeoPrimitive([3, 4, 5, 6, 8, 12, 16][Math.floor(Math.random() * 7)]);
-
-    // 2. Randomise All Instrument DNA and Patterns
-    setTracks(prev => prev.map((track, i) => {
-      const newPattern = Array(STEPS).fill(0).map(() => Math.random() > 0.8); // Sparse random pattern
-      return {
-        ...track,
-        pattern: newPattern,
-        ratio: 0.5 + Math.random() * 1.5,
-        fmRatio: 0.1 + Math.random() * 8.0,
-        fmIndex: Math.random() * 40,
-        inharmonicity: Math.random(),
-        decay: 0.05 + Math.random() * 3.0,
-        pitchDepth: Math.random() * 2.0,
-        pitchTime: 0.01 + Math.random() * 0.5,
-        cutoff: Math.random(),
-        filterQ: Math.random(),
-        probability: 0.4 + Math.random() * 0.6,
-        pan: (Math.random() - 0.5) * 2,
-        reverbSend: Math.random() * 0.8,
-        cycleLength: [4, 8, 12, 16][Math.floor(Math.random() * 4)] // Inject polyrhythms
-      };
-    }));
-    
-    // Add visual splash
-    particlesRef.current = [];
-    auraParticlesRef.current = [];
-  }, []);
-
-  const initAudio = async () => {
-    if (isAudioStarted) return;
-    try {
-      await Tone.start();
-      if (Tone.getContext().state !== 'running') {
-        await Tone.getContext().resume();
-      }
-    } catch (error) {
-      console.error('Unable to start Web Audio:', error);
-      return;
-    }
-
-    resonanceNode.current = new Tone.FeedbackCombFilter({ delayTime: 0.1, resonance: 0.35 }).toDestination();
-    globalReverb.current = new Tone.Reverb({ decay: 4, wet: 1 }).toDestination();
-    const newSynths = tracksRef.current.map((track, i) => {
-      const synth = new Tone.FMSynth({
-        harmonicity: 1, modulationIndex: 2,
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [bpm, setBpm] = useState(120);
+    const [masterVol, setMasterVol] = useState(-10);
+    const [selectedTrack, setSelectedTrack] = useState(null);
+    const [isAudioStarted, setIsAudioStarted] = useState(false);
+    // Global Horizon State
+    const [elasticity, setElasticity] = useState(0);
+    const [entropy, setEntropy] = useState(0);
+    const [harmonicMorph, setHarmonicMorph] = useState(0);
+    const [rootFreq, setRootFreq] = useState(FUNDAMENTAL_DEFAULT);
+    const [feedbackIntensity, setFeedbackIntensity] = useState(0);
+    // Aura State
+    const [auraZoom, setAuraZoom] = useState(1.0);
+    const [visualPersistence, setVisualPersistence] = useState(0.2);
+    const [geoPrimitive, setGeoPrimitive] = useState(6);
+    // Interaction State
+    const [isDragging, setIsDragging] = useState(null);
+    const [focusedParam, setFocusedParam] = useState(null);
+    const dragStartData = useRef({ dist: 0, val: 0 });
+    const mousePos = useRef({ x: 0, y: 0 });
+    // Chromatic Nebula Stains Logic
+    const stains = useRef(Array.from({ length: 4 }, (_, i) => ({
+        angle: (i / 4) * Math.PI * 2,
+        speed: (Math.random() - 0.5) * 0.01,
+        hue: Math.random() * 360,
+        size: 150 + Math.random() * 100,
+        phase: Math.random() * Math.PI * 2
+    })));
+    const auraLogic = useRef({
+        rotation: 0,
+        rotationSpeed: 0.005,
+        chaosThickness: 1,
+        chaosOpacity: 0.2,
+        chaosPoints: 6,
+        hatJitter: 0
+    });
+    const [tracks, setTracks] = useState(Array.from({ length: TOTAL_TRACKS }, (_, i) => ({
+        id: i,
+        pattern: Array(STEPS).fill(false),
+        ratio: 1.0, fmRatio: 1.0, fmIndex: 2, inharmonicity: 0,
+        decay: 0.5, pitchDepth: 0.1, pitchTime: 0.05,
+        cutoff: 0.8, filterQ: 1, probability: 1.0,
+        lfoSpeed: 0.1, pan: (i % 2 === 0 ? -0.5 : 0.5), reverbSend: 0.2,
+        jitter: 0.005, vibration: 0, cycleLength: 16
+    })));
+    const tracksRef = useRef(tracks);
+    const synthRefs = useRef([]);
+    const canvasRef = useRef(null);
+    const requestRef = useRef(null);
+    const particlesRef = useRef([]);
+    const auraParticlesRef = useRef([]);
+    const activeTriggersRef = useRef([]);
+    const resonanceNode = useRef(null);
+    const globalReverb = useRef(null);
+    const kickEnergyRef = useRef(0);
+    const barCountRef = useRef(0);
+    const globalParamsRef = useRef({ entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity });
+    const dimensions = useRef({
+        w: typeof window !== 'undefined' ? window.innerWidth : 1,
+        h: typeof window !== 'undefined' ? window.innerHeight : 1,
+        dpr: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1
+    });
+    useEffect(() => {
+        const handleResize = () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            dimensions.current = { w, h, dpr };
+            if (canvasRef.current) {
+                canvasRef.current.width = Math.round(w * dpr);
+                canvasRef.current.height = Math.round(h * dpr);
+                canvasRef.current.style.width = `${w}px`;
+                canvasRef.current.style.height = `${h}px`;
+            }
+        };
+        window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('orientationchange', handleResize, { passive: true });
+        handleResize();
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
+        };
+    }, []);
+    useEffect(() => { tracksRef.current = tracks; }, [tracks]);
+    useEffect(() => {
+        globalParamsRef.current = { entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity };
+    }, [entropy, elasticity, harmonicMorph, rootFreq, feedbackIntensity]);
+    // --- Chaos Engine: Randomise Everything ---
+    const randomiseEverything = useCallback(() => {
+        // 1. Randomise Global Settings (except Volume)
+        setBpm(60 + Math.random() * 180);
+        setElasticity(Math.random());
+        setEntropy(Math.random());
+        setHarmonicMorph(Math.random());
+        setRootFreq(40 + Math.random() * 60);
+        setFeedbackIntensity(Math.random());
+        setAuraZoom(0.5 + Math.random() * 1.5);
+        setVisualPersistence(0.1 + Math.random() * 0.6);
+        setGeoPrimitive([3, 4, 5, 6, 8, 12, 16][Math.floor(Math.random() * 7)]);
+        // 2. Randomise All Instrument DNA and Patterns
+        setTracks(prev => prev.map((track, i) => {
+            const newPattern = Array(STEPS).fill(0).map(() => Math.random() > 0.8); // Sparse random pattern
+            return {
+                ...track,
+                pattern: newPattern,
+                ratio: 0.5 + Math.random() * 1.5,
+                fmRatio: 0.1 + Math.random() * 8.0,
+                fmIndex: Math.random() * 40,
+                inharmonicity: Math.random(),
+                decay: 0.05 + Math.random() * 3.0,
+                pitchDepth: Math.random() * 2.0,
+                pitchTime: 0.01 + Math.random() * 0.5,
+                cutoff: Math.random(),
+                filterQ: Math.random(),
+                probability: 0.4 + Math.random() * 0.6,
+                pan: (Math.random() - 0.5) * 2,
+                reverbSend: Math.random() * 0.8,
+                cycleLength: [4, 8, 12, 16][Math.floor(Math.random() * 4)] // Inject polyrhythms
+            };
+        }));
+        // Add visual splash
+        particlesRef.current = [];
+        auraParticlesRef.current = [];
+    }, []);
+    const initAudio = async () => {
+        if (isAudioStarted)
+            return;
+        try {
+            await Tone.start();
+            if (Tone.getContext().state !== 'running') {
+                await Tone.getContext().resume();
+            }
+        }
+        catch (error) {
+            console.error('Unable to start Web Audio:', error);
+            return;
+        }
+        resonanceNode.current = new Tone.FeedbackCombFilter({ delayTime: 0.1, resonance: 0.35 }).toDestination();
+        globalReverb.current = new Tone.Reverb({ decay: 4, wet: 1 }).toDestination();
+        const newSynths = tracksRef.current.map((track, i) => {
+            const synth = new Tone.FMSynth({
+                harmonicity: 1, modulationIndex: 2,
+                oscillator: { type: "sine" }, modulation: { type: "sine" },
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.2 },
+                modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.5 }
+            });
+            const panner = new Tone.Panner(track.pan);
+            const initialCutoff = 90 + Math.pow(track.cutoff, 2) * 9910;
+            const filter = new Tone.Filter(initialCutoff, i < 8 ? "lowpass" : "highpass");
+            filter.Q.value = 0.5 + track.filterQ * 9.5;
