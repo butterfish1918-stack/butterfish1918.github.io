@@ -1,0 +1,369 @@
+const { useState, useEffect, useRef, useCallback } = React;
+const { Mic, Square, Activity, Info, Volume2, Box, RefreshCcw, Settings, Sliders, Headphones, Music, Radio, Stethoscope, EyeOff, BarChart3, AlertTriangle, Speaker, BookOpen } = LucideReact;
+
+// --- ACOUSTIC CONSTANTS & MUSIC THEORY ---
+const A4_HZ = 440;
+const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+const SCALES = {
+  'Major (Ionian)': { intervals: [0, 2, 4, 5, 7, 9, 11, 12], desc: 'Bright, resolved, mathematically standard.' },
+  'Natural Minor (Aeolian)': { intervals: [0, 2, 3, 5, 7, 8, 10, 12], desc: 'Melancholic, flat 3rd, 6th, and 7th.' },
+  'Harmonic Minor': { intervals: [0, 2, 3, 5, 7, 8, 11, 12], desc: 'Augmented second interval. Distinctly neoclassical.' },
+  'Melodic Minor': { intervals: [0, 2, 3, 5, 7, 9, 11, 12], desc: 'Ascending form. Sharp 6th and 7th, resolving to tonic.' },
+  'Dorian': { intervals: [0, 2, 3, 5, 7, 9, 10, 12], desc: 'Symmetrical minor with a natural 6th. Slightly detached.' },
+  'Phrygian': { intervals: [0, 1, 3, 5, 7, 8, 10, 12], desc: 'Dark, tense, characterised by the minor 2nd.' },
+  'Lydian': { intervals: [0, 2, 4, 6, 7, 9, 11, 12], desc: 'Ethereal. The augmented 4th dictates an unresolved tension.' },
+  'Mixolydian': { intervals: [0, 2, 4, 5, 7, 9, 10, 12], desc: 'Major with a flat 7th. The backbone of blues architecture.' }
+};
+
+// Microtonal & Historical Tuning Ratios
+const TUNING_SYSTEMS = {
+  'Equal Temperament (12-TET)': [1, Math.pow(2, 1/12), Math.pow(2, 2/12), Math.pow(2, 3/12), Math.pow(2, 4/12), Math.pow(2, 5/12), Math.pow(2, 6/12), Math.pow(2, 7/12), Math.pow(2, 8/12), Math.pow(2, 9/12), Math.pow(2, 10/12), Math.pow(2, 11/12), 2],
+  'Just Intonation (5-Limit)': [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8, 2],
+  'Pythagorean (3-Limit)': [1, 256/243, 9/8, 32/27, 81/64, 4/3, 729/512, 3/2, 128/81, 27/16, 16/9, 243/128, 2],
+  'Quarter-Comma Meantone': [0, 76.0, 193.2, 310.3, 386.3, 503.4, 579.5, 696.6, 772.6, 889.7, 1006.8, 1082.9, 1200].map(c => Math.pow(2, c/1200)),
+  'Werckmeister III (Well Temp)': [0, 90, 192, 294, 390, 498, 588, 696, 792, 888, 996, 1092, 1200].map(c => Math.pow(2, c/1200)),
+  'Greek Enharmonic Tetrachord': [1, 32/31, 16/15, 4/3, 3/2, 48/31, 8/5, 2, 2, 2, 2, 2, 2] 
+};
+
+const midiToHz = (midi) => A4_HZ * Math.pow(2, (midi - 69) / 12);
+const hzToMidi = (hz) => 12 * Math.log2(hz / A4_HZ) + 69;
+
+const parseNote = (noteStr) => {
+  const match = noteStr.trim().toUpperCase().match(/^([A-G]#?)(\d)$/);
+  if (!match) return null;
+  const noteName = match[1];
+  const octave = parseInt(match[2], 10);
+  const noteIndex = NOTES.indexOf(noteName);
+  if (noteIndex === -1) return null;
+  const midi = (octave + 1) * 12 + noteIndex;
+  return { display: `${noteName}${octave}`, midi, hz: midiToHz(midi), isFree: true };
+};
+
+const CORRELATION_BUFFERS = { buffer: new Float32Array(2048), c: new Float32Array(1024) };
+
+const getCanvasDuration = (sequenceLength, bpm) => {
+  if (sequenceLength === 0) return 2500;
+  const msPerBeat = (60 / bpm) * 1000;
+  return Math.max(3000, (sequenceLength * msPerBeat) + 3000); 
+};
+
+function App() {
+  const [isFreeMode, setIsFreeMode] = useState(false);
+  const [freeInputStr, setFreeInputStr] = useState('C4 E4 G4 B4 C5');
+  
+  const [rootNote, setRootNote] = useState('C');
+  const [octave, setOctave] = useState(4);
+  const [scaleType, setScaleType] = useState('Major (Ionian)');
+  const [tuningType, setTuningType] = useState('Quarter-Comma Meantone');
+  const [bpm, setBpm] = useState(80);
+
+  const [targetSequence, setTargetSequence] = useState([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isVoidMode, setIsVoidMode] = useState(false); 
+  const [isLombardMode, setIsLombardMode] = useState(false); 
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  
+  const [showAdvancedCalib, setShowAdvancedCalib] = useState(false);
+  const [dspConfig, setDspConfig] = useState({
+    hpFreq: 65, lpFreq: 1200, baseRms: 0.002, baseZcr: 0.25, dynamicMult: 2.5, minThreshold: 0.005
+  });
+  const dspConfigRef = useRef(dspConfig);
+
+  const [clinicalStats, setClinicalStats] = useState({ f1: 0, f2: 0, hnr: 0, fsRatio: 0, tilt: 0, oq: 0, grit: 0, efficiency: 0 });
+  const [sessionHistory, setSessionHistory] = useState([]); 
+  const strobePhaseRef = useRef(0); 
+
+  useEffect(() => { dspConfigRef.current = dspConfig; }, [dspConfig]);
+
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const monitorRefs = useRef({ stream: null, ctx: null });
+  const lombardRefs = useRef({ osc: null, noise: null, lfo: null, gain: null });
+
+  const [feedback, setFeedback] = useState('Awaiting acoustic input. The Architects demand spectral purity and perfect ratios.');
+  const [pitchData, setPitchData] = useState([]);
+  const pitchOverlayRef = useRef(null);
+  const pitchTextRef = useRef(null);
+  const [userBaseMidi, setUserBaseMidi] = useState(null); 
+  
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null); 
+  const [isPlayingComparison, setIsPlayingComparison] = useState(false); 
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
+  
+  const canvasRef = useRef(null);
+  const personalCanvasRef = useRef(null); 
+  const attractorCanvasRef = useRef(null);
+
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const streamRef = useRef(null);
+  const sourceRef = useRef(null);
+  const userAudioRef = useRef(null);
+  const animationRef = useRef(null);
+  const isRecordingRef = useRef(false); 
+  const isLiveModeRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isPlayingComparisonRef = useRef(false); 
+  const mediaRecorderRef = useRef(null); 
+  const audioChunksRef = useRef([]); 
+  const playbackFrameRef = useRef(null); 
+  const synthPitchDataRef = useRef([]); 
+
+  const currentPitchData = useRef([]);
+  const startTime = useRef(0);
+
+  useEffect(() => {
+    if (isFreeMode) {
+      const notes = freeInputStr.split(/\s+/).filter(n => n.length > 0);
+      if (notes.length > 64) { setFeedback('Error: Analytical limits exceeded. Max 64 steps.'); return; }
+      const parsedSequence = notes.map(parseNote).filter(n => n !== null);
+      if (parsedSequence.length !== notes.length) setFeedback('Error: Structural invalidity in the brass cogs.');
+      else { setTargetSequence(parsedSequence); setFeedback('Free sequence logged. Radium lanes prepared.'); }
+    } else {
+      const rootMidi = (octave + 1) * 12 + NOTES.indexOf(rootNote);
+      const rootHz = midiToHz(rootMidi);
+      const intervals = SCALES[scaleType].intervals;
+      const ratios = TUNING_SYSTEMS[tuningType];
+
+      const sequence = intervals.map(interval => {
+        const ratio = ratios[Math.min(interval, 12)] || 1; 
+        const hz = rootHz * ratio;
+        const exactMidi = hzToMidi(hz); 
+        const noteIndex = Math.round(exactMidi) % 12;
+        const oct = Math.floor(Math.round(exactMidi) / 12) - 1;
+        return { display: `${NOTES[noteIndex]}${oct}`, midi: exactMidi, hz: hz, isFree: false };
+      });
+      setTargetSequence(sequence);
+      setFeedback(`Lattice Applied: ${rootNote} ${scaleType} [${tuningType}]. Target frequencies recalculated.`);
+    }
+    setPitchData([]); setUserBaseMidi(null); strobePhaseRef.current = 0;
+  }, [isFreeMode, freeInputStr, rootNote, octave, scaleType, tuningType]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'SELECT') return;
+      const key = e.key.toLowerCase();
+      if (key === 'r') { e.preventDefault(); document.getElementById('brutalist-record-btn')?.click(); }
+      else if (key === 'l') { e.preventDefault(); document.getElementById('live-training-btn')?.click(); }
+      else if (key === 'c') { e.preventDefault(); document.getElementById('juxtapose-btn')?.click(); }
+      else if (key === 's') { e.preventDefault(); document.getElementById('synthesize-btn')?.click(); }
+      else if (key === 'v') { e.preventDefault(); setIsVoidMode(prev => !prev); }
+      else if (key === 'm') { e.preventDefault(); setIsLombardMode(prev => !prev); }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+      return () => {
+          if (monitorRefs.current.stream) monitorRefs.current.stream.getTracks().forEach(t => t.stop());
+          if (monitorRefs.current.ctx) monitorRefs.current.ctx.close();
+          stopLombardNoise();
+      };
+  }, []);
+
+  const toggleMonitor = async () => {
+      if (isMonitoring) {
+          if (monitorRefs.current.stream) monitorRefs.current.stream.getTracks().forEach(t => t.stop());
+          if (monitorRefs.current.ctx) monitorRefs.current.ctx.close();
+          monitorRefs.current = { stream: null, ctx: null }; setIsMonitoring(false);
+      } else {
+          try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              if (ctx.state === 'suspended') await ctx.resume();
+              const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = dspConfigRef.current.hpFreq;
+              const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = dspConfigRef.current.lpFreq;
+              const gain = ctx.createGain(); gain.gain.value = 4.0; 
+              const source = ctx.createMediaStreamSource(stream);
+              source.connect(hp); hp.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
+              monitorRefs.current = { stream, ctx }; setIsMonitoring(true);
+          } catch(e) { setFeedback('Hardware hook failed. Check copper wire permissions.'); }
+      }
+  };
+
+  const startLombardNoise = (ctx) => {
+      if (lombardRefs.current.gain) return; 
+      
+      const bufferSize = ctx.sampleRate * 2;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+          let white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5; 
+      }
+
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseSource.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.5; 
+
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 300;
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 55; 
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.15; 
+
+      noiseSource.connect(filter);
+      filter.connect(masterGain);
+      osc.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      noiseSource.start();
+      lfo.start();
+      osc.start();
+
+      lombardRefs.current = { noise: noiseSource, osc, lfo, gain: masterGain };
+  };
+
+  const stopLombardNoise = () => {
+      if (lombardRefs.current.gain) {
+          lombardRefs.current.noise.stop();
+          lombardRefs.current.osc.stop();
+          lombardRefs.current.lfo.stop();
+          lombardRefs.current = { noise: null, osc: null, lfo: null, gain: null };
+      }
+  };
+
+  const getExpectedHzAtTime = useCallback((elapsed) => {
+    if (targetSequence.length === 0) return 0;
+    const msPerBeat = (60 / bpm) * 1000;
+    const index = Math.floor((elapsed - 1000) / msPerBeat); 
+    if (index >= 0 && index < targetSequence.length) return targetSequence[index].hz;
+    return 0;
+  }, [targetSequence, bpm]);
+
+  const getIdealContourData = useCallback(() => {
+    const data = []; const msPerBeat = (60 / bpm) * 1000; let currentTime = 1000; const stepsPerBeat = 20; 
+    targetSequence.forEach(note => {
+      for(let i=0; i<=stepsPerBeat; i++) {
+         data.push({ time: currentTime + (i / stepsPerBeat) * msPerBeat, pitch: note.hz, midi: note.midi });
+      }
+      currentTime += msPerBeat;
+    });
+    return { data, totalDuration: currentTime };
+  }, [targetSequence, bpm]);
+
+  const playSynthSequence = async (onComplete) => {
+    if (targetSequence.length === 0) return;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') await ctx.resume();
+    const msPerBeat = (60 / bpm) * 1000; const secPerBeat = msPerBeat / 1000; let startTime = ctx.currentTime + 0.1;
+    targetSequence.forEach(note => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = 'sawtooth'; osc.frequency.value = note.hz;
+      const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = note.hz * 2.5;
+      osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.001, startTime); gain.gain.exponentialRampToValueAtTime(0.4, startTime + 0.05);
+      gain.gain.setValueAtTime(0.4, startTime + secPerBeat - 0.1); gain.gain.exponentialRampToValueAtTime(0.001, startTime + secPerBeat - 0.01);
+      osc.start(startTime); osc.stop(startTime + secPerBeat); startTime += secPerBeat;
+    });
+    if (onComplete) setTimeout(onComplete, (targetSequence.length * msPerBeat) + 200);
+  };
+
+  const playSyllable = () => {
+    setFeedback('Initiating phase-aligned brass oscillators. Note the pure mathematical intervals.');
+    playSynthSequence(() => setFeedback('Oscillation complete. Prepare your organic mechanism.'));
+  };
+
+  const stopComparison = () => {
+    if (!isPlayingComparisonRef.current) return;
+    setIsPlayingComparison(false); isPlayingComparisonRef.current = false;
+    if (playbackFrameRef.current) cancelAnimationFrame(playbackFrameRef.current);
+    if (userAudioRef.current) { userAudioRef.current.pause(); userAudioRef.current.currentTime = 0; }
+    drawFrame(null, currentPitchData.current, synthPitchDataRef.current, false);
+    setFeedback('Acoustic juxtaposition manually aborted.');
+  };
+
+  const toggleComparison = () => { if (isPlayingComparison) stopComparison(); else playComparison(); };
+
+  const playComparison = () => {
+    if (!recordedAudioUrl || targetSequence.length === 0) return;
+    setIsPlayingComparison(true); isPlayingComparisonRef.current = true;
+    setFeedback('Juxtaposition initiated. The pristine machine plays first, followed by your decaying attempt.');
+    
+    if (playbackFrameRef.current) cancelAnimationFrame(playbackFrameRef.current);
+    synthPitchDataRef.current = []; drawFrame(null, [], [], false); 
+
+    const { data: idealData, totalDuration } = getIdealContourData();
+    const initialMaxDuration = getCanvasDuration(targetSequence.length, bpm); 
+    const lastPitchTime = currentPitchData.current && currentPitchData.current.length > 0 ? currentPitchData.current[currentPitchData.current.length - 1].time : 0;
+    const dynamicCanvasMaxDuration = Math.max(initialMaxDuration, lastPitchTime + 1000); 
+
+    let synthStarted = false; const playStartTime = performance.now(); let lastScroll = 0;
+
+    const updateScroll = (elapsed) => {
+        const scale = dynamicCanvasMaxDuration / initialMaxDuration; const w = 800 * scale;
+        const penX = 80 + ((elapsed / dynamicCanvasMaxDuration) * w); const scrollTarget = Math.max(0, penX - 400);
+        if (Math.abs(lastScroll - scrollTarget) > 2) {
+            const absoluteScrollWrapper = document.getElementById('absolute-scroll-wrapper');
+            if (absoluteScrollWrapper) absoluteScrollWrapper.scrollLeft = scrollTarget;
+            const personalScrollWrapper = document.getElementById('personal-scroll-wrapper');
+            if (personalScrollWrapper) personalScrollWrapper.scrollLeft = scrollTarget;
+            lastScroll = scrollTarget;
+        }
+    };
+
+    const animateSynth = () => {
+       if (!isPlayingComparisonRef.current) return;
+       const elapsed = performance.now() - playStartTime;
+       synthPitchDataRef.current = idealData.filter(d => d.time <= elapsed);
+       drawFrame(null, [], synthPitchDataRef.current, false); updateScroll(elapsed);
+
+       if (elapsed >= 1000 && !synthStarted) { synthStarted = true; playSynthSequence(); }
+       if (elapsed < totalDuration + 500) playbackFrameRef.current = requestAnimationFrame(animateSynth);
+       else startUserAudioReplay();
+    };
+
+    const startUserAudioReplay = () => {
+      userAudioRef.current = new Audio(recordedAudioUrl);
+      const userAudio = userAudioRef.current;
+      userAudio.onplay = () => {
+        const playStartTime = performance.now();
+        const animateUser = () => {
+            if (!isPlayingComparisonRef.current) return;
+            const elapsed = performance.now() - playStartTime;
+            const currentData = currentPitchData.current.filter(d => d.time <= elapsed);
+            drawFrame(null, currentData, synthPitchDataRef.current, false); updateScroll(elapsed);
+            if (elapsed < dynamicCanvasMaxDuration) playbackFrameRef.current = requestAnimationFrame(animateUser);
+            else {
+               setIsPlayingComparison(false); isPlayingComparisonRef.current = false;
+               setFeedback('Juxtaposition complete. Analyse your topological deviance.');
+            }
+        };
+        playbackFrameRef.current = requestAnimationFrame(animateUser);
+      };
+      userAudio.onended = () => {
+        if (!isPlayingComparisonRef.current) return;
+        setIsPlayingComparison(false); isPlayingComparisonRef.current = false;
+        drawFrame(null, currentPitchData.current, synthPitchDataRef.current, false);
+        setFeedback('Juxtaposition complete. Post-mortem available in the telemetry panel.');
+      };
+      userAudio.play().catch(e => {
+        setIsPlayingComparison(false); isPlayingComparisonRef.current = false;
+        setFeedback('Audio playback choked by browser permissions.');
+      });
+    }
+    playbackFrameRef.current = requestAnimationFrame(animateSynth);
+  };
+
+  const autoCorrelate = (buf, sampleRate, config) => {
+    let rms = 0; let numZeroCrossings = 0;
