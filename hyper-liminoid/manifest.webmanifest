@@ -1,0 +1,29 @@
+{
+  "id": "./",
+  "name": "Hyper-Liminoid v11.2 \u2014 Transparent Vortex",
+  "short_name": "Hyper-Liminoid",
+  "description": "Interactive spatial synthesizer and visual instrument with historical temperaments, waveguide feedback, shadow bass and tactile controls.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#010101",
+  "theme_color": "#010101",
+  "categories": [
+    "music",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
