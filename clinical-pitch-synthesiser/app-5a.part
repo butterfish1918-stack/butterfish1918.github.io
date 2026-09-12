@@ -1,0 +1,114 @@
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <button onClick={() => setShowManual(true)} disabled={isRecording || isLiveMode || isPlayingComparison || isCalibrating} className="deco-button py-2 px-4 font-deco text-xs uppercase text-[#d4af37] flex items-center">
+                  <BookOpen size={14} className="mr-2"/> Codex
+                </button>
+                <button onClick={calibrateAcoustics} disabled={isRecording || isLiveMode || isPlayingComparison || isCalibrating} className={`deco-button py-2 px-4 font-deco text-xs uppercase flex items-center ${isCalibrating ? 'deco-button-radium' : 'text-[#d4af37]'}`}>
+                  <Settings size={14} className={`mr-2 ${isCalibrating ? 'animate-spin' : ''}`}/> {isCalibrating ? 'Profiling...' : 'Auto-Calibrate'}
+                </button>
+                <button onClick={() => setShowAdvancedCalib(true)} disabled={isRecording || isLiveMode || isPlayingComparison || isCalibrating} className="deco-button py-2 px-4 font-deco text-xs uppercase text-[#d4af37] flex items-center">
+                  <Sliders size={14} className="mr-2"/> DSP
+                </button>
+            </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+          
+          {/* LEFT COLUMN: Config & Telemetry */}
+          <div className="lg:col-span-4 art-deco-border p-6 flex flex-col h-auto bg-[#0a0a0a]/90 backdrop-blur-sm">
+            
+            <div className="flex justify-between items-center border-b border-[#5c4a3d] pb-3 mb-6">
+                <h2 className="text-sm font-deco uppercase radium-text font-bold flex items-center gap-2">
+                   <Music size={16}/> Sequence Matrix
+                </h2>
+                <button onClick={() => setIsFreeMode(!isFreeMode)} className="text-xs font-mono bg-[#1f1a14] px-2 py-1 text-[#d4af37] hover:bg-[#8b7355] hover:text-[#000] transition-colors border border-[#8b7355]">
+                  <RefreshCcw size={12} className="inline mr-1" />
+                  {isFreeMode ? 'Switch to Modes' : 'Switch to Free Input'}
+                </button>
+            </div>
+            
+            {!isFreeMode ? (
+               <div className="flex flex-col gap-5 flex-1">
+                 <div className="text-xs font-mono text-[#b8a078] mb-2 leading-relaxed">
+                   Select from Western modes or Historical Microtonal systems. The grand sequencer will dynamically generate the pure ratios.
+                 </div>
+                 
+                 <div className="flex gap-4">
+                    <div className="flex-1">
+                        <label className="block text-[10px] font-deco text-[#8b7355] uppercase mb-1">Root Frequency</label>
+                        <select value={rootNote} onChange={(e) => setRootNote(e.target.value)} disabled={isRecording || isLiveMode} className="w-full bg-[#050505] border border-[#8b7355] p-2 text-sm font-mono text-[#d4af37] outline-none focus:border-[#a3e635] disabled:opacity-50">
+                            {NOTES.map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex-1">
+                        <label className="block text-[10px] font-deco text-[#8b7355] uppercase mb-1">Octave Registry</label>
+                        <select value={octave} onChange={(e) => setOctave(parseInt(e.target.value))} disabled={isRecording || isLiveMode} className="w-full bg-[#050505] border border-[#8b7355] p-2 text-sm font-mono text-[#d4af37] outline-none focus:border-[#a3e635] disabled:opacity-50">
+                            {[2, 3, 4, 5, 6].map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="block text-[10px] font-deco text-[#8b7355] uppercase mb-1">Structural Mode</label>
+                    <select value={scaleType} onChange={(e) => setScaleType(e.target.value)} disabled={isRecording || isLiveMode} className="w-full bg-[#050505] border border-[#8b7355] p-2 text-sm font-mono text-[#d4af37] outline-none focus:border-[#a3e635] disabled:opacity-50">
+                        {Object.keys(SCALES).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                 </div>
+
+                 <div>
+                    <label className="block text-[10px] font-deco text-[#a3e635] uppercase mb-1">Tuning Paradigm (Intonation)</label>
+                    <select value={tuningType} onChange={(e) => setTuningType(e.target.value)} disabled={isRecording || isLiveMode} className="w-full bg-[#050505] border border-[#a3e635] p-2 text-sm font-mono text-[#a3e635] outline-none focus:border-[#d4af37] disabled:opacity-50 shadow-[inset_0_0_10px_rgba(163,230,53,0.1)]">
+                        {Object.keys(TUNING_SYSTEMS).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="bg-[#050505] p-4 border-l-2 border-[#d4af37] mt-2 shadow-[inset_0_0_10px_rgba(212,175,55,0.1)]">
+                    <p className="text-xs font-mono text-[#b8a078]">{SCALES[scaleType].desc}</p>
+                 </div>
+               </div>
+            ) : (
+               <div className="flex flex-col gap-5 flex-1">
+                 <div className="text-xs font-mono text-[#b8a078] mb-2 leading-relaxed">
+                   Free composition module. Enter up to 64 discrete pitches separated by spaces (e.g., <span className="radium-text font-bold">C4 D#4 G5</span>).
+                 </div>
+                 <div className="flex-1 flex flex-col">
+                    <label className="block text-[10px] font-deco text-[#8b7355] uppercase mb-1">Sequence Input</label>
+                    <textarea value={freeInputStr} onChange={(e) => setFreeInputStr(e.target.value)} disabled={isRecording || isLiveMode} placeholder="E.g. C4 D4 E4 F4 G4" className="w-full flex-1 min-h-[200px] bg-[#050505] border border-[#8b7355] p-3 text-sm font-mono text-[#d4af37] outline-none focus:border-[#a3e635] resize-none custom-scrollbar disabled:opacity-50" />
+                 </div>
+               </div>
+            )}
+            
+            <div className="mt-6 pt-4 border-t border-[#5c4a3d]">
+                <label className="flex justify-between text-xs font-deco text-[#d4af37] mb-2"><span>Metronomic Pulse</span><span>{bpm} BPM</span></label>
+                <input type="range" min="40" max="180" step="5" value={bpm} disabled={isRecording || isLiveMode} onChange={e => setBpm(parseInt(e.target.value))} className="w-full accent-[#d4af37] disabled:opacity-50" />
+            </div>
+
+            {/* Clinical Telemetry Dashboard with Neural Convergence */}
+            <div className="mt-6 border-t border-[#5c4a3d] pt-4">
+                <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-[10px] font-deco text-[#a3e635] uppercase flex items-center gap-2"><Stethoscope size={14}/> Physiological Telemetry</h3>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Spectral Tilt">Tilt (H1-H2)</span>
+                      <span className="text-sm font-deco text-[#d4af37]">{clinicalStats.tilt.toFixed(1)} dB</span>
+                   </div>
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Phonation Efficiency">{"Inertive $\\eta$"}</span>
+                      <span className="text-sm font-deco text-[#d4af37]">{clinicalStats.efficiency.toFixed(2)}</span>
+                   </div>
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Formant F1 (Throat)">F1 Formant</span>
+                      <span className="text-sm font-deco text-[#d4af37]">{clinicalStats.f1} Hz</span>
+                   </div>
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Formant F2 (Tongue)">F2 Formant</span>
+                      <span className="text-sm font-deco text-[#d4af37]">{clinicalStats.f2} Hz</span>
+                   </div>
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Correlation Dimension proxy">{"Grit ($D_2$)"}</span>
+                      <span className="text-sm font-deco text-[#a3e635]">{clinicalStats.grit.toFixed(1)}</span>
+                   </div>
+                   <div className="bg-[#050505] border border-[#5c4a3d] p-2 flex flex-col">
+                      <span className="text-[9px] text-[#8b7355] uppercase font-mono truncate" title="Singer's Formant (2.5k-3.5k)">{"Singer's Fs"}</span>
+                      <span className="text-sm font-deco text-[#a3e635]">{clinicalStats.fsRatio.toFixed(1)} %</span>
