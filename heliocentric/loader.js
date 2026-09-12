@@ -1,10 +1,11 @@
 (async () => {
+  const BUILD = '5';
   const parts = [
-    './app.part00.txt',
-    './app.part01.txt',
-    './app.part02.txt',
-    './app.part03.txt',
-    './app.part04.txt'
+    `./app.part00.txt?v=${BUILD}`,
+    `./app.part01.txt?v=${BUILD}`,
+    `./app.part02.txt?v=${BUILD}`,
+    `./app.part03.txt?v=${BUILD}`,
+    `./app.part04.txt?v=${BUILD}`
   ];
 
   try {
@@ -15,8 +16,8 @@
 
     const chunks = await Promise.all(responses.map((response) => response.text()));
 
-    // v1 was split at an unsafe character boundary. If that legacy overlap is
-    // ever served from an old Android/PWA cache, remove it before compiling.
+    // Early builds were split at an unsafe character boundary. If a legacy
+    // overlap is ever returned by an old PWA cache, normalize it before Babel.
     const legacyOverlap = "', 'entropy', 'harmonicMorph', 'rootFreq', 'feedbackIntensity'];\n";
     if (chunks[2] && chunks[2].startsWith(legacyOverlap)) {
       chunks[2] = chunks[2].slice(legacyOverlap.length);
