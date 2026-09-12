@@ -1,4 +1,4 @@
-const CACHE = 'heliocentric-v3';
+const CACHE = 'heliocentric-v4';
 const SHELL = [
   './',
   './index.html',
