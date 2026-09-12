@@ -1,0 +1,358 @@
+    for (let i = 0; i < buf.length; i++) {
+      rms += buf[i] * buf[i];
+      if (i > 0 && ((buf[i] >= 0 && buf[i - 1] < 0) || (buf[i] < 0 && buf[i - 1] >= 0))) numZeroCrossings++;
+    }
+    rms = Math.sqrt(rms / buf.length); const zcr = numZeroCrossings / buf.length;
+    const dynamicThreshold = Math.max(config.minThreshold * 0.4, config.baseRms * config.dynamicMult * 0.6); 
+
+    if (rms < dynamicThreshold || zcr > Math.max(0.4, config.baseZcr * 2.0)) return { pitch: -1, rms, hnr: 0 }; 
+
+    let max_val = 0;
+    for (let i = 0; i < buf.length; i++) if (Math.abs(buf[i]) > max_val) max_val = Math.abs(buf[i]);
+    for (let i = 0; i < buf.length; i++) CORRELATION_BUFFERS.buffer[i] = buf[i] / (max_val || 1);
+
+    const SIZE = Math.floor(buf.length / 2);
+    for (let i = 0; i < SIZE; i++) {
+      let sum = 0;
+      for (let j = 0; j < SIZE; j+=2) sum += CORRELATION_BUFFERS.buffer[j] * CORRELATION_BUFFERS.buffer[j + i];
+      CORRELATION_BUFFERS.c[i] = sum;
+    }
+
+    let d = 0; while (CORRELATION_BUFFERS.c[d] > CORRELATION_BUFFERS.c[d + 1]) d++;
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < SIZE; i++) {
+      if (CORRELATION_BUFFERS.c[i] > maxval) { maxval = CORRELATION_BUFFERS.c[i]; maxpos = i; }
+    }
+    
+    let T0 = maxpos;
+    if (T0 === 0 || CORRELATION_BUFFERS.c[T0] < CORRELATION_BUFFERS.c[0] * 0.25) return { pitch: -1, rms, hnr: 0 }; 
+
+    const r0 = CORRELATION_BUFFERS.c[0]; const rMax = maxval;
+    let hnr = 0; if (rMax > 0 && r0 > rMax) hnr = 10 * Math.log10(rMax / (r0 - rMax + 0.0001));
+    
+    return { pitch: sampleRate / T0, rms, hnr };
+  };
+
+  const drawPhaseSpaceAttractor = (dataArray, pitch) => {
+      const canvas = attractorCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.strokeStyle = '#1f1a14'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height); ctx.stroke();
+
+      if (pitch < 50) return; 
+
+      const tau = 15; 
+      const scale = canvas.width / 2.5;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      ctx.strokeStyle = 'rgba(163, 230, 53, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+
+      let isFirst = true;
+      for (let i = 0; i < dataArray.length - tau; i += 2) {
+          const x = cx + dataArray[i] * scale;
+          const y = cy + dataArray[i + tau] * scale;
+          if (isFirst) { ctx.moveTo(x, y); isFirst = false; }
+          else { ctx.lineTo(x, y); }
+      }
+      ctx.stroke();
+  };
+
+  const drawFrame = useCallback((rawAudio, pitchHistory = [], synthHistory = [], isLive = false) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const initialMaxDuration = getCanvasDuration(targetSequence.length, bpm); 
+    const lastPitchTime = pitchHistory && pitchHistory.length > 0 ? pitchHistory[pitchHistory.length - 1].time : 0;
+    
+    let canvasMaxDuration = Math.max(initialMaxDuration, lastPitchTime + 1000); 
+    let scale = canvasMaxDuration / initialMaxDuration;
+    let w = 800 * scale; let drawMinTime = 0; let timeRange = canvasMaxDuration;
+
+    if (isLive) {
+        canvasMaxDuration = 6000; scale = 1; w = 800;
+        const currentElapsed = performance.now() - startTime.current;
+        drawMinTime = Math.max(0, currentElapsed - 6000); timeRange = 6000;
+    }
+
+    const desiredWidth = isLive ? w : w + 160;
+    const desiredHeight = isLive ? 480 : 220;
+
+    if (!isLive && (canvas.width < desiredWidth || canvas.width > desiredWidth + 1200)) canvas.width = Math.floor(desiredWidth + 800);
+    else if (isLive && canvas.width !== 800) canvas.width = 800;
+    
+    if (canvas.height !== desiredHeight) canvas.height = desiredHeight;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width; const height = canvas.height; const margin = isLive ? 0 : 80;
+
+    const aWrap = document.getElementById('absolute-scroll-wrapper');
+    const viewLeft = aWrap ? aWrap.scrollLeft : 0;
+    const viewRight = aWrap ? aWrap.scrollLeft + aWrap.clientWidth : width;
+
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, width, height);
+
+    let minMidi = 48; let maxMidi = 84; 
+    if (isLive) {
+       minMidi = 36; 
+       maxMidi = 96; 
+    } else if (targetSequence.length > 0) {
+       const midis = targetSequence.map(n => n.midi);
+       minMidi = Math.min(...midis) - 4; maxMidi = Math.max(...midis) + 4;
+    }
+    const yRange = maxMidi - minMidi; const rowHeight = height / yRange;
+
+    const hideTargets = isVoidMode && isRecordingRef.current;
+
+    if (!hideTargets) {
+        ctx.lineWidth = 1;
+        targetSequence.forEach(note => {
+            const normalizedY = 1 - ((note.midi - minMidi) / yRange); const y = normalizedY * height;
+            ctx.fillStyle = 'rgba(163, 230, 53, 0.08)'; ctx.fillRect(0, y - rowHeight/2, width, rowHeight);
+            ctx.strokeStyle = 'rgba(163, 230, 53, 0.2)'; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+        });
+
+        for (let m = Math.floor(minMidi); m <= Math.ceil(maxMidi); m++) {
+          const y = (1 - ((m - minMidi) / yRange)) * height;
+          const isNatural = [0, 2, 4, 5, 7, 9, 11].includes(m % 12);
+          ctx.strokeStyle = isNatural ? 'rgba(139, 115, 85, 0.3)' : 'rgba(139, 115, 85, 0.1)'; 
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+          
+          if (m % 12 === 0) {
+             ctx.fillStyle = 'rgba(184, 160, 120, 0.6)'; ctx.font = '10px "Oswald", sans-serif'; ctx.textAlign = 'left';
+             ctx.fillText(`C${Math.floor(m/12)-1}`, viewLeft + 5, y - 2);
+          }
+        }
+
+        if (!isLive) {
+          ctx.strokeStyle = 'rgba(139, 115, 85, 0.3)'; ctx.beginPath();
+          let cx = 1000; const msPerBeat = (60 / bpm) * 1000;
+          targetSequence.forEach(() => {
+              cx += msPerBeat; const xPx = margin + ((cx / canvasMaxDuration) * w);
+              ctx.moveTo(xPx, 0); ctx.lineTo(xPx, height);
+          });
+          ctx.stroke();
+        }
+    } else {
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.1)'; ctx.beginPath();
+        for(let i=0; i<height; i+=20) { ctx.moveTo(0, i); ctx.lineTo(width, i); }
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.3)'; ctx.font = '24px "Oswald", sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('VOID PROTOCOL ACTIVE', viewLeft + (viewRight - viewLeft) / 2, height / 2);
+    }
+
+    ctx.font = 'bold 12px "Oswald", sans-serif'; ctx.textAlign = 'right';
+    if (!hideTargets) { ctx.fillStyle = '#d4af37'; ctx.fillText(isLive ? '■ ILLUMINATED RADIUM LANES' : '■ SYNTH TRUTH [IDEAL INTERVALS]', viewRight - 20, 20); }
+    ctx.fillStyle = '#a3e635'; ctx.fillText('■ ORGANIC VAGARIES [RAW EXTRACT]', viewRight - 20, 40);
+
+    if (rawAudio && rawAudio.length > 0 && !isLive) {
+      ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(139, 115, 85, 0.4)'; ctx.beginPath();
+      const sliceWidth = width / rawAudio.length; let x = 0;
+      for (let i = 0; i < rawAudio.length; i++) {
+        const v = rawAudio[i] * 3.0; const y = (v * 0.5 + 0.5) * height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); x += sliceWidth;
+      }
+      ctx.stroke();
+    }
+
+    ctx.save(); ctx.beginPath(); ctx.rect(margin, 0, width - margin, height); ctx.clip();
+
+    if (synthHistory && synthHistory.length > 0 && !isLive && !hideTargets) {
+      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4; ctx.lineCap = 'butt'; 
+      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(212, 175, 55, 0.6)'; ctx.beginPath();
+      let isFirstTts = true;
+      synthHistory.forEach(point => {
+        const xPx = margin + (((point.time - drawMinTime) / timeRange) * w); if (xPx > width) return;
+        const clampedMidi = Math.max(minMidi, Math.min(maxMidi, point.midi));
+        const y = (1 - ((clampedMidi - minMidi) / yRange)) * height;
+        if (isFirstTts) { ctx.moveTo(xPx, y); isFirstTts = false; } else { ctx.lineTo(xPx, y); }
+      });
+      ctx.stroke(); ctx.shadowBlur = 0; 
+    }
+
+    if (pitchHistory && pitchHistory.length > 0) {
+      ctx.strokeStyle = 'rgba(163, 230, 53, 0.3)'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(163, 230, 53, 0.6)'; ctx.beginPath();
+      let isFirstBase = true; let prevTimeBase = -1;
+      pitchHistory.forEach(point => {
+        if (point.time < drawMinTime) return;
+        const xPx = margin + (((point.time - drawMinTime) / timeRange) * w); if (xPx > width) return;
+        const midi = point.midi || hzToMidi(point.pitch);
+        const clampedMidi = Math.max(minMidi, Math.min(maxMidi, midi));
+        const y = (1 - ((clampedMidi - minMidi) / yRange)) * height;
+        if (isFirstBase || (prevTimeBase !== -1 && point.time - prevTimeBase > 80)) { ctx.moveTo(xPx, y); isFirstBase = false; } 
+        else { ctx.lineTo(xPx, y); }
+        prevTimeBase = point.time;
+      });
+      ctx.stroke();
+
+      ctx.strokeStyle = '#a3e635'; ctx.lineWidth = 3; ctx.shadowBlur = 0; ctx.beginPath();
+      let isFirstTop = true; let prevTimeTop = -1;
+      pitchHistory.forEach(point => {
+        if (point.time < drawMinTime) return;
+        const xPx = margin + (((point.time - drawMinTime) / timeRange) * w); if (xPx > width) return;
+        const midi = point.midi || hzToMidi(point.pitch);
+        const clampedMidi = Math.max(minMidi, Math.min(maxMidi, midi));
+        const y = (1 - ((clampedMidi - minMidi) / yRange)) * height;
+        if (isFirstTop || (prevTimeTop !== -1 && point.time - prevTimeTop > 80)) { ctx.moveTo(xPx, y); isFirstTop = false; } 
+        else { ctx.lineTo(xPx, y); }
+        prevTimeTop = point.time;
+      });
+      ctx.stroke();
+    }
+    ctx.restore(); 
+
+    if (isRecordingRef.current) {
+        const strobeRadius = 25; 
+        const strobeX = viewRight - strobeRadius - 20; 
+        const strobeY = height - strobeRadius - 20;
+        
+        ctx.save(); ctx.translate(strobeX, strobeY);
+        ctx.beginPath(); ctx.arc(0, 0, strobeRadius + 4, 0, Math.PI*2);
+        ctx.fillStyle = '#1f1a14'; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#8b7355'; ctx.stroke();
+        ctx.rotate(strobePhaseRef.current);
+        for(let i=0; i<8; i++) {
+           ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, strobeRadius, i * Math.PI/4, (i+0.5)*Math.PI/4);
+           ctx.fillStyle = isVoidMode ? 'rgba(220, 38, 38, 0.8)' : 'rgba(163, 230, 53, 0.8)'; ctx.fill();
+        }
+        ctx.restore();
+        ctx.fillStyle = '#b8a078'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('PHASE', strobeX, strobeY + strobeRadius + 14);
+    }
+
+  }, [targetSequence, bpm, isVoidMode, getCanvasDuration]);
+
+  const drawPersonalizedFrame = useCallback((rawAudio, pitchHistory, userAvgMidi, isLive = false) => {
+    const canvas = personalCanvasRef.current;
+    if (!canvas || !userAvgMidi || targetSequence.length === 0 || isLive) return; 
+
+    const initialMaxDuration = getCanvasDuration(targetSequence.length, bpm); 
+    const lastPitchTime = pitchHistory && pitchHistory.length > 0 ? pitchHistory[pitchHistory.length - 1].time : 0;
+    const canvasMaxDuration = Math.max(initialMaxDuration, lastPitchTime + 1000); 
+
+    const scale = canvasMaxDuration / initialMaxDuration; const w = 800 * scale; const desiredWidth = w + 160;
+
+    if (canvas.width < desiredWidth || canvas.width > desiredWidth + 1200) canvas.width = Math.floor(desiredWidth + 800);
+
+    const ctx = canvas.getContext('2d'); const width = canvas.width; const height = canvas.height; const margin = 80;
+
+    const pWrap = document.getElementById('personal-scroll-wrapper');
+    const viewRight = pWrap ? pWrap.scrollLeft + pWrap.clientWidth : width;
+
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, width, height);
+
+    const targetMidpoint = (targetSequence[0].midi + targetSequence[targetSequence.length - 1].midi) / 2;
+    const offset = Math.round(userAvgMidi - targetMidpoint); 
+    const minMidi = userAvgMidi - 14; const maxMidi = userAvgMidi + 14; const yRange = maxMidi - minMidi;
+
+    ctx.lineWidth = 1;
+    for (let m = Math.floor(minMidi); m <= Math.ceil(maxMidi); m++) {
+      const y = (1 - ((m - minMidi) / yRange)) * height;
+      const isNatural = [0, 2, 4, 5, 7, 9, 11].includes(m % 12);
+      ctx.strokeStyle = isNatural ? 'rgba(139, 115, 85, 0.2)' : 'rgba(139, 115, 85, 0.05)';
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+
+    ctx.font = 'bold 10px "Oswald", sans-serif'; ctx.textAlign = 'right';
+    ctx.fillStyle = '#d4af37'; ctx.fillText('■ TRANSPOSED TARGET (OCTAVE SHIFTED)', viewRight - 20, 20);
+    ctx.fillStyle = '#a3e635'; ctx.fillText('■ YOUR RAW PITCH', viewRight - 20, 35);
+
+    const { data: idealData } = getIdealContourData();
+    if (idealData.length > 0) {
+      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3; ctx.lineCap = 'butt'; ctx.beginPath();
+      let isFirstTts = true;
+      idealData.forEach(point => {
+        const x = margin + ((point.time / canvasMaxDuration) * w); if (x > width) return;
+        const transposedMidi = point.midi + offset;
+        const clampedMidi = Math.max(minMidi, Math.min(maxMidi, transposedMidi));
+        const y = (1 - ((clampedMidi - minMidi) / yRange)) * height;
+        if (isFirstTts) { ctx.moveTo(x, y); isFirstTts = false; } else { ctx.lineTo(x, y); }
+      });
+      ctx.stroke();
+    }
+
+    if (pitchHistory && pitchHistory.length > 0) {
+      ctx.strokeStyle = '#a3e635'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
+      let isFirstTop = true; let prevTimeTop = -1;
+      pitchHistory.forEach(point => {
+        const x = margin + ((point.time / canvasMaxDuration) * w); if (x > width) return;
+        const midi = point.midi || hzToMidi(point.pitch);
+        const clampedMidi = Math.max(minMidi, Math.min(maxMidi, midi));
+        const y = (1 - ((clampedMidi - minMidi) / yRange)) * height;
+        if (isFirstTop || (prevTimeTop !== -1 && point.time - prevTimeTop > 80)) { ctx.moveTo(x, y); isFirstTop = false; } 
+        else { ctx.lineTo(x, y); }
+        prevTimeTop = point.time;
+      });
+      ctx.stroke();
+    }
+  }, [targetSequence, bpm, getCanvasDuration, getIdealContourData]);
+
+  useEffect(() => {
+    if (!isRecording && !isPlayingComparison) drawFrame(null, pitchData, synthPitchDataRef.current, isLiveMode);
+  }, [targetSequence, pitchData, isRecording, isPlayingComparison, drawFrame, isLiveMode]);
+
+  useEffect(() => {
+      if (userBaseMidi && pitchData.length > 0 && !isRecording && !isLiveMode) {
+          drawPersonalizedFrame(null, pitchData, userBaseMidi, isLiveMode);
+      } else if (!isRecording && !isLiveMode) {
+          const canvas = personalCanvasRef.current;
+          if (canvas) {
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.fillStyle = 'rgba(139, 115, 85, 0.4)'; ctx.font = '12px "Oswald", sans-serif'; ctx.textAlign = 'center';
+              ctx.fillText('AWAITING BIOMETRIC REGISTRATION FOR RELATIVE TRANSPOSITION', canvas.width / 2, canvas.height / 2);
+          }
+      }
+  }, [userBaseMidi, pitchData, isRecording, drawPersonalizedFrame, isLiveMode]);
+
+  const calibrateAcoustics = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const filterLP = audioCtx.createBiquadFilter(); filterLP.type = 'lowpass'; filterLP.frequency.value = dspConfigRef.current.lpFreq; 
+      const filterHP = audioCtx.createBiquadFilter(); filterHP.type = 'highpass'; filterHP.frequency.value = dspConfigRef.current.hpFreq; 
+      const analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; 
+      const source = audioCtx.createMediaStreamSource(stream); source.connect(filterHP); filterHP.connect(filterLP); filterLP.connect(analyser);
+      setIsCalibrating(true);
+      setFeedback('Extracting ambient room impedance... Maintain silence to isolate the noise floor.');
+      const dataArray = new Float32Array(analyser.fftSize);
+      let totalRms = 0; let totalZcr = 0; let frames = 0; const start = performance.now();
+      const sampleRoom = () => {
+        analyser.getFloatTimeDomainData(dataArray);
+        let rms = 0; let zcr = 0;
+        for (let i = 0; i < dataArray.length; i++) { rms += dataArray[i] * dataArray[i]; if (i > 0 && ((dataArray[i] >= 0 && dataArray[i - 1] < 0) || (dataArray[i] < 0 && dataArray[i - 1] >= 0))) zcr++; }
+        totalRms += Math.sqrt(rms / dataArray.length); totalZcr += (zcr / dataArray.length); frames++;
+        if (performance.now() - start < 2000) requestAnimationFrame(sampleRoom);
+        else {
+          const newBaseRms = Math.max(totalRms / frames, 0.0005);
+          setDspConfig(prev => ({ ...prev, baseRms: newBaseRms, baseZcr: totalZcr / frames }));
+          setIsCalibrating(false); setFeedback(`Calibration complete. Ambient RMS: <span class="text-[#a3e635]">${newBaseRms.toFixed(4)}</span>. Brass noise gate secured.`);
+          stream.getTracks().forEach(track => track.stop()); audioCtx.close();
+        }
+      };
+      sampleRoom();
+    } catch(e) { setFeedback(`Acoustic profiling failed: ${e.message}. Ensure permissions.`); setIsCalibrating(false); }
+  };
+
+  const startRecording = async (isLive = false) => {
+    if (isStartingRef.current || isRecordingRef.current) return;
+    isStartingRef.current = true; setIsWarmingUp(true);
+
+    try {
+      if (targetSequence.length === 0) { setFeedback('Archive empty. You must declare a mathematical sequence first.'); isStartingRef.current = false; setIsWarmingUp(false); return; }
+      setFeedback('Negotiating rusted brass audio daemons...');
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      streamRef.current = stream;
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
