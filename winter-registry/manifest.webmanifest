@@ -1,0 +1,14 @@
+{
+  "name": "The Winter Registry",
+  "short_name": "Winter Registry",
+  "description": "A systems prototype about survival, imperfect information and bureaucratic triage.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090d0b",
+  "theme_color": "#101411",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
