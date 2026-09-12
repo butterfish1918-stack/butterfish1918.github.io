@@ -1,0 +1,19 @@
+{
+  "name": "The Grimoire Engine",
+  "short_name": "Grimoire",
+  "description": "Modulo-12 guitar fretboard, harmony, quiz and live practice engine.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050505",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
