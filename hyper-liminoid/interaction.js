@@ -1,11 +1,44 @@
 const activeParamLabel = document.getElementById('active-param');
+const clarityValue = document.getElementById('clarity-value');
+
+const CONTROL_NAMES = {
+    gain: 'Volume',
+    inertia: 'Inertia',
+    tempIndex: 'Temperament',
+    cutoff: 'Cutoff',
+    res: 'Resonance',
+    space: 'Space',
+    attack: 'Attack',
+    release: 'Release',
+    fractal: 'Fractal',
+    intensity: 'Intensity',
+    shadowDepth: 'Shadow',
+    temporalWeight: 'Temporal weight',
+    convergence: 'Convergence',
+    respiration: 'Respiration',
+    transcendence: 'Delta',
+    gravity: 'Gravity'
+};
+
+function formatControlValue(orb) {
+    if (orb.id === 'tempIndex') return TEMPERAMENTS[Math.round(orb.getValue())].name;
+    if (orb.id === 'cutoff') return `${Math.round(orb.getValue())} Hz`;
+    return orb.getValue().toFixed(2);
+}
+
 function showLabel(orb) {
-    let valStr = orb.getValue().toFixed(2);
-    if (orb.id === 'tempIndex') valStr = TEMPERAMENTS[Math.round(orb.getValue())].name;
-    activeParamLabel.innerText = `${orb.label}: ${valStr}`;
+    const name = CONTROL_NAMES[orb.id] || orb.label;
+    activeParamLabel.innerText = `${name} // ${formatControlValue(orb)}`;
     activeParamLabel.style.opacity = 1;
     if (labelTimeout) clearTimeout(labelTimeout);
-    if (!touchContext.active && !draggedOrb) labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1500);
+    if (!touchContext.active && !draggedOrb) {
+        labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1500);
+    }
+}
+
+function showNoteVolume(note, value) {
+    activeParamLabel.innerText = `${note} // Level ${value.toFixed(2)}`;
+    activeParamLabel.style.opacity = 1;
 }
 
 function handleInputStart(x, y) {
@@ -21,6 +54,7 @@ function handleInputStart(x, y) {
             return;
         }
     }
+
     for (let o of orbs) {
         if (Math.hypot(x - o.x, y - o.y) < 45) {
             touchContext.active = true;
@@ -36,6 +70,7 @@ function handleInputStart(x, y) {
 
 function handleInputMove(x, y) {
     if (!touchContext.active) return;
+
     if (touchContext.type === 'control') {
         const delta = (touchContext.lastY - y) / touchContext.target.trackHeight;
         touchContext.target.updateValue(delta);
@@ -44,18 +79,20 @@ function handleInputMove(x, y) {
     } else if (touchContext.type === 'note') {
         const totalDelta = touchContext.startY - y;
         if (Math.abs(totalDelta) > 10) touchContext.isDragging = true;
+
         if (touchContext.isDragging) {
             const step = (touchContext.lastY - y) * 0.005;
             const p = polyParams[touchContext.target.index];
             p.gain = Math.max(0, Math.min(1, p.gain + step));
             targetPoly[touchContext.target.index].gain = p.gain;
             if (touchContext.target.voice) touchContext.target.voice.updateParams();
+
             if (touchContext.target.index === selectedNoteIndex) {
                 const gOrb = controlOrbs.find(k => k.id === 'gain');
                 if (gOrb) gOrb.updateVisualPos();
             }
-            activeParamLabel.innerText = `${touchContext.target.label} VOL: ${p.gain.toFixed(2)}`;
-            activeParamLabel.style.opacity = 1;
+
+            showNoteVolume(touchContext.target.label, p.gain);
             touchContext.lastY = y;
         }
     }
@@ -67,20 +104,24 @@ function handleInputEnd() {
         if (selectedNoteIndex !== o.index) {
             selectedNoteIndex = o.index;
             controlOrbs.forEach(c => c.updateVisualPos());
-            activeParamLabel.innerText = `Focus: ${o.label}`;
+            activeParamLabel.innerText = `Focus // ${o.label}`;
             activeParamLabel.style.opacity = 1;
             if (labelTimeout) clearTimeout(labelTimeout);
-            labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1000);
+            labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1200);
         } else {
             o.toggle();
+            activeParamLabel.innerText = `${o.label} // ${o.active ? 'Voice active' : 'Voice released'}`;
+            activeParamLabel.style.opacity = 1;
         }
     }
+
     touchContext.active = false;
     touchContext.target = null;
     touchContext.type = null;
     draggedOrb = null;
+
     if (labelTimeout) clearTimeout(labelTimeout);
-    labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1000);
+    labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1200);
 }
 
 let activePointerId = null;
@@ -122,17 +163,19 @@ window.addEventListener('pointercancel', finishPointer, { passive: true });
 window.addEventListener('wheel', e => {
     if (!isRunning) return;
     if (e.clientX > width - 200 && e.clientY < 60) return;
+
     for (let c of controlOrbs) {
         if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < 40) {
             e.preventDefault();
             const direction = e.deltaY > 0 ? -1 : 1;
             const range = Math.max(1, c.max - c.min);
-            const step = (c.id === 'tempIndex') ? 1/range : 0.05;
+            const step = (c.id === 'tempIndex') ? 1 / range : 0.05;
             c.updateValue(direction * step);
             showLabel(c);
             return;
         }
     }
+
     for (let o of orbs) {
         if (Math.hypot(e.clientX - o.x, e.clientY - o.y) < 40) {
             e.preventDefault();
@@ -140,16 +183,22 @@ window.addEventListener('wheel', e => {
             p.gain = Math.max(0, Math.min(1, p.gain + (e.deltaY > 0 ? -0.05 : 0.05)));
             targetPoly[o.index].gain = p.gain;
             if (o.voice) o.voice.updateParams();
-            if (o.index === selectedNoteIndex) controlOrbs.find(k => k.id === 'gain').updateVisualPos();
-            activeParamLabel.innerText = `${o.label} VOL: ${p.gain.toFixed(2)}`;
-            activeParamLabel.style.opacity = 1;
+            if (o.index === selectedNoteIndex) {
+                const gainOrb = controlOrbs.find(k => k.id === 'gain');
+                if (gainOrb) gainOrb.updateVisualPos();
+            }
+            showNoteVolume(o.label, p.gain);
             if (labelTimeout) clearTimeout(labelTimeout);
-            labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1000);
+            labelTimeout = setTimeout(() => { activeParamLabel.style.opacity = 0; }, 1200);
             return;
         }
     }
 }, { passive: false });
 
-document.getElementById('vis-clarity').addEventListener('input', (e) => {
+const claritySlider = document.getElementById('vis-clarity');
+claritySlider.addEventListener('input', e => {
     globalParams.visClarity = parseFloat(e.target.value);
+    if (clarityValue) clarityValue.textContent = Math.round(globalParams.visClarity * 100);
 });
+
+if (clarityValue) clarityValue.textContent = Math.round(globalParams.visClarity * 100);
