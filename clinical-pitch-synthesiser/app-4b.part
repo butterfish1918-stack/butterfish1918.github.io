@@ -1,0 +1,91 @@
+                          <li><strong className="text-[#d4af37]">{"Singer's Formant ($F_S$)"}:</strong> We track the percentage of total acoustic energy clustered between 2.5kHz and 3.5kHz. If this number is high, your voice has "ring" and will project over an orchestra. If it is low, you are mumbling.</li>
+                          <li><strong className="text-[#d4af37]">{"Inertive Reactance ($\\eta$)"}:</strong> A proxy for Phonation Efficiency. By comparing the Root Mean Square (RMS) output against low-frequency subglottal energy, we determine how much acoustic work you are wasting.</li>
+                          <li><strong className="text-[#d4af37]">{"Grit ($D_2$)"}:</strong> The human voice is a non-linear dynamical system. Intentional distortion or poor cord health forces the vocal folds into chaotic subharmonics. We track the variance of the time-domain signal as a proxy for the Correlation Dimension ($D_2$). A pure sine wave is 0; Ian Curtis on a bleak Tuesday is significantly higher.</li>
+                      </ul>
+                  </div>
+
+                  <div className="border-t border-[#5c4a3d] pt-4">
+                      <h3 className="text-lg font-deco text-[#a3e635] uppercase mb-2">3. Visualisation Paradigms</h3>
+                      <p className="mb-2">The dual spaceframes provide absolute and relative topological feedback.</p>
+                      <ul className="list-disc pl-5 space-y-2">
+                          <li><strong className="text-[#d4af37]">The Strobotuner:</strong> A phase-correlation interference wheel. If you are sharp of the target frequency, it spins clockwise. Flat, counter-clockwise. When you achieve perfect mathematical resonance, the wheel freezes.</li>
+                          <li><strong className="text-[#d4af37]">Phase-Space Attractor:</strong> Using Takens' embedding theorem, we plot your waveform against a delayed version of itself. A pure tone creates a stable, elliptical limit cycle. A distorted voice creates a tangled, chaotic web.</li>
+                          <li><strong className="text-[#d4af37]">Neural Convergence:</strong> Tracking the Power Law of Practice. The bar chart logs your deviation in *cents* across multiple takes. The goal is to shrink the error bar over time.</li>
+                      </ul>
+                  </div>
+
+                  <div className="border-t border-[#5c4a3d] pt-4">
+                      <h3 className="text-lg font-deco text-[#a3e635] uppercase mb-2">4. Psychoacoustic Protocols</h3>
+                      <ul className="list-disc pl-5 space-y-2">
+                          <li><strong className="text-[#dc2626]">Lombard Masking ['M']:</strong> Induces the Lombard Effect by pumping a binaural, sweeping industrial brown-noise drone into your ears. You must fight the psychological urge to sharpen your pitch or increase your volume over the noise floor.</li>
+                          <li><strong className="text-[#dc2626]">Void Protocol ['V']:</strong> The visual target lanes are extinguished during extraction. You must rely entirely on Baddeley &amp; Hitch's "phonological loop"—your internal working memory—to hit the mathematical ratios blind.</li>
+                      </ul>
+                  </div>
+
+                  <div className="border-t border-[#5c4a3d] pt-4">
+                      <h3 className="text-lg font-deco text-[#a3e635] uppercase mb-2">5. Clinical Post-Mortem Grading</h3>
+                      <p className="mb-2">The system grades you using Dynamic Time Warping (DTW), heavily modified by the Weber-Fechner law (logarithmic pitch sensitivity in the 1k-4k range). Furthermore, we analyse perturbation:</p>
+                      <ul className="list-disc pl-5 space-y-2">
+                          <li><strong className="text-[#d4af37]">Jitter &amp; Shimmer:</strong> Cycle-to-cycle frequency and amplitude instability. If your Jitter consistently climbs over 1.2% across three takes, the system will trigger a <strong className="text-[#dc2626]">Vocal Fatigue Warning</strong>. Shut up and have a brew before you damage your larynx.</li>
+                          <li><strong className="text-[#d4af37]">Vocal Onset Time (VOT):</strong> The algorithm ignores the first 50ms of any vocalization to account for pitch micro-jumps caused by plosive consonants, while simultaneously measuring your neurological latency in reacting to the metronome.</li>
+                          <li><strong className="text-[#d4af37]">Vibrato Scoring:</strong> A rigid, dead note is heavily penalised as "hovering." A healthy, periodic classical vibrato (4.5Hz - 6.5Hz) is rewarded. We are building humans, not voltage-controlled oscillators.</li>
+                      </ul>
+                  </div>
+
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* Advanced Calibration Overlays */}
+      {showAdvancedCalib && (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#000000]/90 backdrop-blur-sm p-4 md:p-8">
+            <div className="art-deco-border p-6 md:p-8 max-w-2xl w-full flex flex-col gap-6 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+               <div className="absolute top-0 right-0 p-4 z-10">
+                  <button onClick={() => setShowAdvancedCalib(false)} className="text-[#8b7355] font-bold font-deco hover:text-[#d4af37] transition-colors">[CLOSE]</button>
+               </div>
+               <h2 className="text-xl md:text-2xl font-deco brass-text mb-2 flex items-center gap-4 border-b border-[#5c4a3d] pb-4">
+                  <Sliders className="text-[#d4af37]" size={28} />
+                  Brass & Vacuum Tube Calibrations
+               </h2>
+               <div className="space-y-6">
+                  <div>
+                      <label className="flex justify-between text-xs font-deco text-[#d4af37] mb-2"><span>High-Pass Filter (Rumble)</span><span>{dspConfig.hpFreq} Hz</span></label>
+                      <input type="range" min="20" max="200" value={dspConfig.hpFreq} onChange={e => setDspConfig({...dspConfig, hpFreq: parseInt(e.target.value)})} className="w-full accent-[#d4af37]" />
+                  </div>
+                  <div>
+                      <label className="flex justify-between text-xs font-deco text-[#d4af37] mb-2"><span>Low-Pass Filter (Hiss)</span><span>{dspConfig.lpFreq} Hz</span></label>
+                      <input type="range" min="500" max="4000" value={dspConfig.lpFreq} onChange={e => setDspConfig({...dspConfig, lpFreq: parseInt(e.target.value)})} className="w-full accent-[#d4af37]" />
+                  </div>
+                  <div>
+                      <label className="flex justify-between text-xs font-deco text-[#d4af37] mb-2"><span>Dynamic Multiplier</span><span>{dspConfig.dynamicMult}x</span></label>
+                      <input type="range" min="1.0" max="10.0" step="0.1" value={dspConfig.dynamicMult} onChange={e => setDspConfig({...dspConfig, dynamicMult: parseFloat(e.target.value)})} className="w-full accent-[#d4af37]" />
+                  </div>
+                  <div>
+                      <label className="flex justify-between text-xs font-deco text-[#d4af37] mb-2"><span>Min RMS Threshold</span><span>{dspConfig.minThreshold.toFixed(4)}</span></label>
+                      <input type="range" min="0.001" max="0.05" step="0.001" value={dspConfig.minThreshold} onChange={e => setDspConfig({...dspConfig, minThreshold: parseFloat(e.target.value)})} className="w-full accent-[#d4af37]" />
+                  </div>
+               </div>
+               <div className="mt-4 border-t border-[#5c4a3d] pt-6 flex justify-center">
+                  <button onClick={toggleMonitor} className={`deco-button py-3 px-8 font-deco text-xs md:text-sm uppercase flex items-center gap-3 ${isMonitoring ? 'deco-button-radium' : 'text-[#d4af37]'}`}>
+                      {isMonitoring ? <Square size={16} /> : <Headphones size={16} />}
+                      {isMonitoring ? 'Halt Brass Manifold' : 'Listen to Filtered Feed'}
+                  </button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      <div className="w-full max-w-7xl mx-auto space-y-8 relative z-10 py-4">
+        
+        <header className="border-b-2 border-[#8b7355] pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative">
+            <div className="flex flex-col">
+                <div className="flex items-center gap-4 mb-2">
+                    <Activity className="text-[#a3e635]" size={36} strokeWidth={1.5} />
+                    <h1 className="text-4xl md:text-5xl font-deco brass-text uppercase">Clinical Pitch Synthesiser</h1>
+                </div>
+                <p className="text-[#b8a078] font-mono text-xs md:text-sm tracking-widest pl-1">
+                  Absolute Equal &amp; Historical Temperament. <span className="radium-text font-bold">Strict intervallic enforcement.</span>
+                </p>
+            </div>
+            
