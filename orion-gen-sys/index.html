@@ -1,20 +1,281 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#05060a"><meta name="apple-mobile-web-app-capable" content="yes"><title>ORION GEN-SYS</title><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><style>
-:root{--bg:#05060a;--panel:#11131f;--accent:#00d1ff;--pink:#ff79c6;--text:#a9b4c6;--green:#50fa7b;--red:#ff5555;--border:#2d314d;--dark:#0a0b14}*{box-sizing:border-box}html{background:var(--bg);-webkit-text-size-adjust:100%}body{margin:0;min-height:100dvh;background:radial-gradient(circle at top,#10152b 0,#05060a 55%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}button,select,input{font:inherit;touch-action:manipulation}.app{width:min(1420px,100%);margin:auto;padding:14px}.panel{background:rgba(17,19,31,.94);border:1px solid var(--border);box-shadow:0 0 35px #00d1ff15;border-radius:10px;padding:12px}.head{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px}.brand{color:var(--accent);font-weight:900;letter-spacing:.08em;text-shadow:0 0 10px #00d1ff55}.small{font-size:11px}.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{background:var(--dark);border:1px solid var(--border);border-radius:8px;padding:9px;min-width:0}label{display:block;color:var(--pink);font-size:10px;font-weight:800;margin:0 0 6px}select,input[type=range]{width:100%}select{min-height:38px;background:#05060a;color:var(--green);border:1px solid #343951;border-radius:6px;padding:7px}input[type=range]{accent-color:var(--accent);height:24px}.value{color:var(--green)}.transport{width:100%;min-height:48px;border:0;border-radius:8px;background:linear-gradient(#69ff91,#2e9148);color:#031007;font-weight:900;letter-spacing:.06em;box-shadow:0 4px 0 #1a4d28;margin:12px 0;cursor:pointer}.transport.on{background:linear-gradient(#ff6c6c,#912e2e);color:#160202;box-shadow:0 4px 0 #4d1a1a}.grid2{display:grid;grid-template-columns:1fr 1.1fr;gap:12px}.mixer{display:grid;gap:7px}.part{display:grid;grid-template-columns:14px 72px 1fr 58px;gap:7px;align-items:center;background:#151827;border:1px solid #30354d;border-radius:7px;padding:8px;cursor:pointer}.part.on{border-color:var(--green);background:#20243a}.led{width:9px;height:9px;border-radius:50%;background:#3a3d47}.part.on .led{background:var(--green);box-shadow:0 0 10px var(--green)}.mini{border:1px solid #444;background:#111;color:#fff;border-radius:5px;min-height:32px;font-size:10px}.seq{overflow-x:auto;-webkit-overflow-scrolling:touch}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}.tab{border:1px solid #343951;background:#141625;color:var(--text);border-radius:6px;padding:8px 10px;min-height:36px;font-size:10px}.tab.active{background:var(--pink);color:#000}.palette{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px;max-height:106px;overflow:auto}.pal{border:1px solid #343951;background:#111420;color:var(--text);border-radius:5px;padding:7px;font-size:10px}.pal.active{background:var(--accent);color:#000}.steps{display:grid;grid-template-columns:repeat(16,minmax(30px,1fr));gap:4px;min-width:610px}.step{aspect-ratio:1;border:1px solid #30354d;background:#0d0f17;color:#62697b;border-radius:5px;font-size:9px}.step.on{background:var(--accent);color:#000;box-shadow:0 0 8px #00d1ff77}.step.play{outline:2px solid var(--green)}.status{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;background:#020305;border:1px inset #343951;border-radius:8px;padding:10px;margin-top:12px;color:var(--accent);font-size:11px}.drawer{position:fixed;inset:0;background:#000b;z-index:20;display:none;place-items:center;padding:12px}.drawer.open{display:grid}.card{width:min(520px,100%);max-height:90dvh;overflow:auto;background:#06070c;border:1px solid var(--accent);border-radius:10px;padding:14px;box-shadow:0 20px 80px #000}.card h3{margin-top:0;color:var(--accent)}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.iconbtn{border:1px solid #3a405a;background:#0b0d15;color:var(--text);border-radius:7px;padding:8px;min-height:38px}.danger{color:var(--red);border-color:var(--red)}@media(max-width:900px){.controls{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}@media(max-width:560px){.app{padding:8px}.panel{padding:9px;border-radius:0}.head{align-items:flex-start}.brand{font-size:13px;line-height:1.35}.controls{grid-template-columns:1fr}.part{grid-template-columns:14px 58px 1fr 52px}.status{font-size:10px}.row{grid-template-columns:1fr}.steps{min-width:560px}}
-</style></head><body><main class="app"><section class="panel"><div class="head"><div><div class="brand">ORION GEN-SYS // MK LXI</div><div class="small">MOBILE GENERATIVE SYNTH / MASTER CONTROL</div></div><button class="iconbtn" id="settingsBtn">⚙ MATRIX</button></div><button class="transport" id="playBtn">INITIATE SEQUENCE</button><div class="controls"><div class="box"><label>STYLE MACRO</label><select id="genre"></select><label>SUB-GENRE</label><select id="sub"></select></div><div class="box"><label>TUNING</label><select id="tuning"></select><label>ROOT</label><select id="root"></select></div><div class="box"><label>SCALE / MODE</label><select id="scale"></select><label>PLAYBACK</label><select id="mode"><option value="generative">Generative Brain</option><option value="sequencer">Sequencer</option></select></div><div class="box"><label>TEMPO <span class="value" id="tempoV">120</span></label><input id="tempo" type="range" min="40" max="220" value="120"><label>GEN BIAS <span class="value" id="densityV">50</span>%</label><input id="density" type="range" min="0" max="100" value="50"></div></div><div class="grid2" style="margin-top:12px"><div class="box"><label>PART MIXER / PRESENCE</label><div id="mixer" class="mixer"></div></div><div class="box seq"><label>128-STEP PERFORMANCE SEQUENCER</label><div id="tabs" class="tabs"></div><div id="palette" class="palette"></div><div id="steps" class="steps"></div></div></div><div class="status"><span>STEP <b id="beat" class="value">0</b>/127</span><span>MODE <b id="modeText" class="value">GEN</b></span><span>AUTO-SAVE <b class="value">ARMED</b></span><span>OFFLINE PWA <b class="value">READY</b></span></div></section></main><div class="drawer" id="drawer"><div class="card"><div class="head"><h3>STOCHASTIC MATRIX</h3><button class="iconbtn" id="closeBtn">CLOSE</button></div><div class="row"><div class="box"><label>MUTATION <span class="value" id="mutationV">10</span>%</label><input id="mutation" type="range" min="0" max="100" value="10"></div><div class="box"><label>PITCH VAR <span class="value" id="pitchV">50</span>%</label><input id="pitch" type="range" min="0" max="100" value="50"></div></div><div class="row" style="margin-top:10px"><div class="box"><label>PHILOSOPHY</label><select id="philosophy"><option>East Coast</option><option>West Coast</option><option>Berlin School</option><option>French Spectralism</option><option>Japanese Precision</option><option>Sheffield Industrial</option><option>Entropy Chaos</option></select></div><div class="box"><label>ATMOSPHERE</label><select id="vibe"><option>Neutral</option><option>Cinematic</option><option>Noir</option><option>Industrial</option><option>Synthwave</option><option>Cyberpunk</option><option>Dream-Pop</option><option>Lo-Fi</option><option>Avant-Garde</option></select></div></div><button class="iconbtn danger" id="randomBtn" style="width:100%;margin-top:12px">Ω RANDOMISE SYSTEM</button></div></div><script>
-const $=id=>document.getElementById(id),parts=['drums','lead','bass','brass','strings','pluck','chords','drone','vox'],notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const scales={Western:{Major:[0,2,4,5,7,9,11],Minor:[0,2,3,5,7,8,10],Dorian:[0,2,3,5,7,9,10],Phrygian:[0,1,3,5,7,8,10],Lydian:[0,2,4,6,7,9,11],Pentatonic:[0,2,4,7,9],Blues:[0,3,5,6,7,10]},Arab:{Rast:[0,2,4,5,7,9,10],Bayati:[0,1.5,3,5,7,8,10],Hijaz:[0,1,4,5,7,8,10],Saba:[0,1.5,3,4,6,8,10]},Ottoman:{Rast:[0,2,4,5,7,9,10],Ussak:[0,1.5,3,5,7,8.5,10],Huseyni:[0,1.5,3,5,7,8.5,10]},Persian:{Shur:[0,1.5,3,5,7,8,10],Homayun:[0,1,4,5,7,8,11],Mahur:[0,2,4,5,7,9,11]},Hindustani:{Bhairav:[0,1,4,5,7,8,11],Yaman:[0,2,4,6,7,9,11],Kafi:[0,2,3,5,7,9,10]},Japanese:{Hirajoshi:[0,2,3,7,8],In:[0,1,5,7,8],Iwato:[0,1,5,6,10]}};
-const genres={Techno:['Berlin','Dub','Acid','Hard'],House:['Deep','Chicago','Acid','French'],Ambient:['Drone','Cinematic','Nature','Space'],Synthwave:['Outrun','Neon','Cyber'],Industrial:['Sheffield','EBM','Noise'],Jazz:['Modal','Fusion','Noir'],Classical:['Minimalist','Spectral','Neo-Classical'],Pop:['Art-Pop','Electro','Dream'],Funk:['Classic','Electro','P-Funk'],Reggae:['Dub','Roots','Digital']};
-let S={tempo:120,density:50,tuning:'Western',root:'C',scale:'Major',genre:'Techno',sub:'Berlin',mode:'generative',track:'lead',mutation:.1,pitch:.5,active:Object.fromEntries(parts.map(x=>[x,true])),presence:Object.fromEntries(parts.map(x=>[x,1])),seq:Object.fromEntries(parts.map(x=>[x,Array(128).fill(null)]))};let ctx=null,timer=null,beat=0,playing=false,wake=null;
-function opt(el,arr,val){el.innerHTML='';arr.forEach(x=>el.add(new Option(x,x)));if(val&&arr.includes(val))el.value=val}function save(){localStorage.setItem('orion-mobile-v2',JSON.stringify(S))}function load(){try{Object.assign(S,JSON.parse(localStorage.getItem('orion-mobile-v2'))||{})}catch{}}function hz(note,oct=4){let i=notes.indexOf(note);return 440*Math.pow(2,((oct-4)*12+i-9)/12)}function scaleNotes(){let a=scales[S.tuning][S.scale]||[0,2,4,5,7,9,11],r=notes.indexOf(S.root);return a.map(v=>({label:notes[(r+Math.round(v))%12]+(4+Math.floor((r+v)/12)),f:hz(S.root)*Math.pow(2,v/12)}))}
-function init(){load();opt($('genre'),Object.keys(genres),S.genre);opt($('sub'),genres[S.genre],S.sub);opt($('tuning'),Object.keys(scales),S.tuning);opt($('root'),notes,S.root);opt($('scale'),Object.keys(scales[S.tuning]),S.scale);$('tempo').value=S.tempo;$('density').value=S.density;$('mode').value=S.mode;$('mutation').value=S.mutation*100;$('pitch').value=S.pitch*100;drawMixer();drawTabs();drawPalette();drawSteps();syncText()}
-function syncText(){$('tempoV').textContent=S.tempo;$('densityV').textContent=S.density;$('mutationV').textContent=Math.round(S.mutation*100);$('pitchV').textContent=Math.round(S.pitch*100);$('modeText').textContent=S.mode==='generative'?'GEN':'SEQ'}
-function drawMixer(){$('mixer').innerHTML='';parts.forEach(p=>{let d=document.createElement('div');d.className='part '+(S.active[p]?'on':'');d.innerHTML=`<i class="led"></i><b>${p.toUpperCase()}</b><input type="range" min="0" max="2" step=".1" value="${S.presence[p]??1}" aria-label="${p} presence"><button class="mini">${S.active[p]?'ON':'OFF'}</button>`;d.querySelector('input').oninput=e=>{S.presence[p]=+e.target.value;save()};d.querySelector('button').onclick=e=>{e.stopPropagation();S.active[p]=!S.active[p];drawMixer();save()};d.onclick=e=>{if(e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){S.active[p]=!S.active[p];drawMixer();save()}};$('mixer').append(d)})}
-function drawTabs(){$('tabs').innerHTML='';parts.forEach(p=>{let b=document.createElement('button');b.className='tab '+(S.track===p?'active':'');b.textContent=p.toUpperCase();b.onclick=()=>{S.track=p;drawTabs();drawPalette();drawSteps();save()};$('tabs').append(b)})}
-function drawPalette(){$('palette').innerHTML='';let vals=S.track==='drums'?['KICK','SNARE','HAT','CLAP','TOM','NOISE']:scaleNotes().map(x=>x.label);vals.forEach(v=>{let b=document.createElement('button');b.className='pal';b.textContent=v;b.onclick=()=>{document.querySelectorAll('.pal').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('palette').dataset.pick=v};$('palette').append(b)});$('palette').dataset.pick=vals[0]||'';$('palette').firstChild?.classList.add('active')}
-function drawSteps(){$('steps').innerHTML='';for(let i=0;i<128;i++){let b=document.createElement('button');b.id='s'+i;b.className='step '+(S.seq[S.track][i]?'on':'');b.textContent=(i%16)+1;b.onclick=()=>{S.seq[S.track][i]=S.seq[S.track][i]?null:$('palette').dataset.pick;drawSteps();save()};$('steps').append(b)}}
-function tone(f,d=.12,v=.12,type='sawtooth',t=ctx.currentTime){let o=ctx.createOscillator(),g=ctx.createGain(),fil=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);fil.type='lowpass';fil.frequency.value=2200;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(fil).connect(g).connect(ctx.destination);o.start(t);o.stop(t+d+.02)}function noise(d=.08,v=.14,t=ctx.currentTime){let b=ctx.createBuffer(1,ctx.sampleRate*d,ctx.sampleRate),x=b.getChannelData(0);for(let i=0;i<x.length;i++)x[i]=Math.random()*2-1;let n=ctx.createBufferSource(),g=ctx.createGain();n.buffer=b;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);n.connect(g).connect(ctx.destination);n.start(t)}function drum(v,t){if(v==='KICK'){let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);g.gain.setValueAtTime(.45,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.3)}else if(v==='SNARE'||v==='CLAP'||v==='NOISE')noise(v==='CLAP'?.05:.12,v==='SNARE'?.2:.12,t);else tone(v==='TOM'?180:7000,.07,.08,v==='HAT'?'square':'triangle',t)}
-function playPart(p,val,t){if(!val||!S.active[p]||Math.random()>Math.min(1,S.presence[p]))return;if(p==='drums')return drum(val,t);let sn=scaleNotes(),m=val.match(/^([A-G]#?)(\d)$/),f=m?hz(m[1],+m[2]):sn[Math.floor(Math.random()*sn.length)].f;if(p==='bass')f/=2;if(p==='pluck')f*=2;if(p==='drone')f/=4;if(p==='chords'){[0,4,7].forEach(x=>tone(f*Math.pow(2,x/12),.5,.05,'sine',t));return}let type={lead:'square',bass:'triangle',brass:'sawtooth',strings:'sawtooth',pluck:'sine',drone:'sine',vox:'sawtooth'}[p]||'sine';tone(f,p==='drone'?.8:p==='strings'?.45:.15,p==='bass'?.16:.09,type,t)}
-function tick(){if(!playing||!ctx)return;let t=ctx.currentTime,i=beat%128;document.querySelectorAll('.step.play').forEach(x=>x.classList.remove('play'));$('s'+i)?.classList.add('play');$('beat').textContent=i;parts.forEach(p=>{let val=S.seq[p][i];if(val)playPart(p,val,t);else if(S.mode==='generative'&&S.active[p]){let chance=(S.density/100)*(.15*S.presence[p]);if(p==='drums'){if(i%4===0&&Math.random()<.75)drum('KICK',t);if(i%8===4&&Math.random()<.65)drum('SNARE',t);if(i%2===0&&Math.random()<.7)drum('HAT',t)}else if(Math.random()<chance){let sn=scaleNotes(),pick=sn[Math.floor(Math.random()*sn.length)].label;playPart(p,pick,t)}}});beat++}
-async function start(){if(playing){playing=false;clearInterval(timer);$('playBtn').classList.remove('on');$('playBtn').textContent='INITIATE SEQUENCE';if(wake)try{await wake.release()}catch{};wake=null;if(ctx)await ctx.close();ctx=null;return}ctx=new(AudioContext||webkitAudioContext)();await ctx.resume();playing=true;$('playBtn').classList.add('on');$('playBtn').textContent='TERMINATE SEQUENCE';timer=setInterval(tick,(60/S.tempo/4)*1000);try{wake=await navigator.wakeLock?.request('screen')}catch{}}
-$('playBtn').onclick=start;$('settingsBtn').onclick=()=>$('drawer').classList.add('open');$('closeBtn').onclick=()=>$('drawer').classList.remove('open');$('drawer').onclick=e=>{if(e.target===$('drawer'))$('drawer').classList.remove('open')};$('genre').onchange=e=>{S.genre=e.target.value;S.sub=genres[S.genre][0];opt($('sub'),genres[S.genre],S.sub);save()};$('sub').onchange=e=>{S.sub=e.target.value;save()};$('tuning').onchange=e=>{S.tuning=e.target.value;S.scale=Object.keys(scales[S.tuning])[0];opt($('scale'),Object.keys(scales[S.tuning]),S.scale);drawPalette();save()};$('root').onchange=e=>{S.root=e.target.value;drawPalette();save()};$('scale').onchange=e=>{S.scale=e.target.value;drawPalette();save()};$('mode').onchange=e=>{S.mode=e.target.value;syncText();save()};$('tempo').oninput=e=>{S.tempo=+e.target.value;syncText();if(playing){clearInterval(timer);timer=setInterval(tick,(60/S.tempo/4)*1000)}save()};$('density').oninput=e=>{S.density=+e.target.value;syncText();save()};$('mutation').oninput=e=>{S.mutation=e.target.value/100;syncText();save()};$('pitch').oninput=e=>{S.pitch=e.target.value/100;syncText();save()};$('randomBtn').onclick=()=>{S.tempo=70+Math.floor(Math.random()*100);S.density=25+Math.floor(Math.random()*70);parts.forEach(p=>{S.presence[p]=+(Math.random()*1.6+.3).toFixed(1)});for(let p of parts)for(let i=0;i<128;i++)if(Math.random()<S.mutation)S.seq[p][i]=null;$('tempo').value=S.tempo;$('density').value=S.density;drawMixer();drawSteps();syncText();save()};document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing)ctx?.resume()});window.addEventListener('pagehide',save);if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));init();
-</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#05060a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <title>Generative RetroSynth | Orion GEN-SYS MK LXI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="workspace">
+        <div class="header-strip">
+            <h1>ORION GEN-SYS // MK LXI // MASTER CONTROL</h1>
+            <div class="header-controls">
+                <label>TUNING</label>
+                <select id="tuningSelect" class="global-mode-select"></select>
+                <label>PHILOSOPHY</label>
+                <select id="globalModeSelect" class="global-mode-select">
+                    <option value="east">East Coast</option>
+                    <option value="west">West Coast</option>
+                    <option value="berlin">Berlin School</option>
+                    <option value="french">French Spectralism</option>
+                    <option value="japanese">Japanese Precision</option>
+                    <option value="sheffield">Sheffield Industrial</option>
+                    <option value="chaos">Entropy Chaos</option>
+                </select>
+                <button class="wheel-btn" style="background:none; border:none; cursor:pointer; color:var(--text); font-size:14px;" onclick="toggleSettingsOverlay()">⚙</button>
+                <button class="rand-btn" style="background:none; border:none; cursor:pointer; color:var(--text); font-size:14px;" onclick="randomiseAll()">Ω</button>
+            </div>
+        </div>
+
+        <div id="settingsOverlay" style="display:none; position:absolute; top:80px; right:40px; z-index:5000; width:320px; background:#000; border:2px solid var(--accent); padding:20px; box-shadow:15px 15px 0px rgba(0,0,0,0.9);">
+            <h3 style="color:var(--accent); font-size:7px; margin-bottom:15px; border-bottom:1px solid var(--accent); padding-bottom:8px;">STOCHASTIC MATRIX</h3>
+            <div style="display:grid; gap:15px; max-height: 400px; overflow-y: auto;">
+                <div style="display:flex; justify-content:space-between;"><label>PITCH VAR</label><input type="range" id="randPitchVar" min="0" max="1" step="0.01" value="0.5"></div>
+                <div style="display:flex; justify-content:space-between;"><label>MUTATION</label><input type="range" id="mutationRate" min="0" max="1" step="0.01" value="0.1"></div>
+                <div style="display:flex; justify-content:space-between;"><label>LIFESPAN</label><div style="display:flex; align-items:center; gap:5px;"><input type="range" id="evolveInterval" min="4" max="128" step="4" value="16"><span id="evolveDisp" style="color:var(--led); font-size:5px;">16</span></div></div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label>AFFECTIVE STATE / MOOD</label>
+                    <select id="moodSelect">
+                        <option value="neutral">NEUTRAL (NO BIAS)</option>
+                        <option value="joy">JOY: PURE / HIGH VALENCE</option>
+                        <option value="sadness">SADNESS: REFLECTIVE / LOSS</option>
+                        <option value="anxiety">ANXIETY: HIGH AROUSAL / TENSION</option>
+                        <option value="calmness">CALMNESS: SERENE / LOW ENERGY</option>
+                        <option value="anger">ANGER: AGGRESSIVE / SHEFFIELD</option>
+                        <option value="awe">AWE: VAST / DIMINISHING</option>
+                        <option value="boredom">BOREDOM: DETACHED / FLAT</option>
+                        <option value="nostalgia">NOSTALGIA: BITTERSWEET / YEARNING</option>
+                        <option value="excitement">EXCITEMENT: ANTICIPATION / PRE-DROP</option>
+                        <option value="melancholy">MELANCHOLY: AESTHETICIZED SADNESS</option>
+                        <option value="amusement">AMUSEMENT: LIGHTHEARTED / WIT</option>
+                        <option value="defiance">DEFIANCE: RESISTANT / POWERFUL</option>
+                        <option value="dreaminess">DREAMINESS: ETHEREAL / DETACHED</option>
+                        <option value="triumph">TRIUMPH: VICTORY / PEAK</option>
+                        <option value="loneliness">LONELINESS: ISOLATION / PERVASIVE</option>
+                        <option value="romance">ROMANCE: INTIMACY / DESIRE</option>
+                        <option value="confusion">CONFUSION: DISSONANT / CHAOTIC</option>
+                        <option value="fear">FEAR: THREAT / SURVIVAL</option>
+                        <option value="contentment">CONTENTMENT: PEACEFUL / PRESENT</option>
+                        <option value="frustration">FRUSTRATION: BLOCKED / STUCK</option>
+                        <option value="disgust">DISGUST: AVERSION / UGLY</option>
+                        <option value="hope">HOPE: POSITIVE / FUTURE</option>
+                        <option value="guilt">GUILT: HEAVY / SELF-REPROACH</option>
+                        <option value="aesthetic">AESTHETIC APPRECIATION: BEAUTY</option>
+                        <option value="aggression">AGGRESSION: RAW / PROACTIVE</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label>ATMOSPHERE / VIBE</label>
+                    <select id="vibeSelect">
+                        <option value="neutral">NEUTRAL (NO BIAS)</option>
+                        <option value="cinematic">CINEMATIC: GRAND / WIDESCREEN</option>
+                        <option value="gaming">VIDEO GAME: CHIPTUNE / 8-BIT</option>
+                        <option value="trailer">TRAILER: HIGH IMPACT / EPIC</option>
+                        <option value="noir">NOIR: DARK / SMOKY</option>
+                        <option value="documentary">DOCUMENTARY: MINIMALIST / FACTUAL</option>
+                        <option value="horror">HORROR: DISSONANT / TENSION</option>
+                        <option value="club">CLUB: PEAK TIME / HIGH ENERGY</option>
+                        <option value="lounge">LOUNGE: SOPHISTICATED / BACKGROUND</option>
+                        <option value="festival">FESTIVAL: ANTHEMIC / HANDS-UP</option>
+                        <option value="afterhours">AFTER-HOURS: DEEP / HYPNOTIC</option>
+                        <option value="underground">UNDERGROUND: RAW / ANTI-COMMERCIAL</option>
+                        <option value="poolside">POOLSIDE: SUNNY / TROPICAL</option>
+                        <option value="lofi">LO-FI: MUFFLED / NOSTALGIC</option>
+                        <option value="synthwave">SYNTHWAVE: RETRO-FUTURE / NEON</option>
+                        <option value="darkacademia">DARK ACADEMIA: BROODING / CLASSICAL</option>
+                        <option value="cottagecore">COTTAGECORE: PASTORAL / FOLK</option>
+                        <option value="cyberpunk">CYBERPUNK: DYSTOPIAN / METALLIC</option>
+                        <option value="ethereal">DREAM-POP: REVERB / FLOATING</option>
+                        <option value="workout">WORKOUT: HIGH-OCTANE / EXERTION</option>
+                        <option value="corporate">CORPORATE: CLEAN / TECH</option>
+                        <option value="nature">NATURE: ORGANIC / WOODY</option>
+                        <option value="meditative">MEDITATIVE: ATMOSPHERIC / SLOW</option>
+                        <option value="elevator">ELEVATOR: BLAND / SMOOTHING</option>
+                        <option value="industrial">INDUSTRIAL: COLD / SHEFFIELD</option>
+                        <option value="avantgarde">AVANT-GARDE: UNPREDICTABLE / CHALLENGING</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label>RANDOMNESS SOURCE</label>
+                    <select id="randomnessSelect">
+                        <option value="uniform">UNIFORM RANDOMNESS (DEFAULT)</option>
+                        <option value="quantum">QUANTUM (IRREDUCIBLE)</option>
+                        <option value="thermal">THERMAL NOISE (JOHNSON-NYQUIST)</option>
+                        <option value="atmospheric">ATMOSPHERIC NOISE (RADIO)</option>
+                        <option value="brownian">BROWNIAN MOTION (RANDOM WALK)</option>
+                        <option value="shot">SHOT NOISE (DISCRETE)</option>
+                        <option value="jitter">CLOCK JITTER (TIMING VAR)</option>
+                        <option value="pseudorandom">PSEUDORANDOMNESS (PRNG)</option>
+                        <option value="csprng">CRYPTOGRAPHIC (CSPRNG)</option>
+                        <option value="kolmogorov">KOLMOGOROV (INCOMPRESSIBLE)</option>
+                        <option value="lxm">LXM (HYBRID GENERATOR)</option>
+                        <option value="mersenne">MERSENNE TWISTER (PERIODIC)</option>
+                        <option value="chaotic">CHAOTIC (DETERMINISTIC)</option>
+                        <option value="gaussian">GAUSSIAN (BELL CURVE)</option>
+                        <option value="poisson">POISSON (INTERVAL EVENTS)</option>
+                        <option value="exponential">EXPONENTIAL (DECAY)</option>
+                        <option value="pareto">PARETO (80/20 RULE)</option>
+                        <option value="levy">LEVY FLIGHTS (HEAVY TAIL)</option>
+                        <option value="lognormal">LOG-NORMAL (MULTIPLICATIVE)</option>
+                        <option value="randomwalk">RANDOM WALK (PATH)</option>
+                        <option value="martingale">MARTINGALE (FAIR BET)</option>
+                        <option value="markovian">MARKOVIAN (MEMORYLESS)</option>
+                        <option value="bernoulli">BERNOULLI PROCESS (BINARY)</option>
+                        <option value="epistemic">EPISTEMIC (INCOMPLETE INFO)</option>
+                        <option value="hardware">HARDWARE ENTROPY (PHYSICAL)</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label>SONG STRUCTURE</label>
+                    <select id="structureSelect">
+                        <option value="free">FREE GENERATION (DEFAULT)</option>
+                        <option value="strophic">STROPHIC (AAA)</option>
+                        <option value="verse_chorus">VERSE-CHORUS (ABAB)</option>
+                        <option value="aaba">AABA (AMERICAN POP)</option>
+                        <option value="through">THROUGH-COMPOSED</option>
+                        <option value="ternary">TERNARY (ABA)</option>
+                        <option value="binary">BINARY (AB)</option>
+                        <option value="build_drop">BUILD-DROP-BREAKDOWN</option>
+                        <option value="extended">EXTENDED/DJ-FRIENDLY</option>
+                        <option value="minimalist">MINIMALIST/ROLLING</option>
+                        <option value="progressive">PROGRESSIVE</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label>TIME PERIOD</label>
+                    <select id="decadeSelect">
+                        <option value="2020s">2020s (MODERN)</option>
+                        <option value="2010s">2010s (STREAMING)</option>
+                        <option value="2000s">2000s (LOUDNESS WAR)</option>
+                        <option value="1990s">1990s (DIGITAL CLARITY)</option>
+                        <option value="1980s">1980s (BRIGHT/GATED)</option>
+                        <option value="1970s">1970s (HI-FI ANALOG)</option>
+                        <option value="1960s">1960s (WALL OF SOUND)</option>
+                        <option value="1950s">1950s (MAGNETIC TAPE)</option>
+                        <option value="1940s">1940s (WAR ERA SATURATION)</option>
+                        <option value="1930s">1930s (EARLY ELECTRIC)</option>
+                        <option value="1920s">1920s (MECHANICAL)</option>
+                    </select>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;"><label>EVOLVE</label><input type="checkbox" id="autoEvolveToggle"></div>
+                <button class="flip-btn" style="width:100%; padding:10px; background:#000; border:1px solid var(--danger); color:var(--danger); font-family:'Press Start 2P'; font-size:6px; cursor:pointer;" onclick="toggleSettingsOverlay()">CLOSE</button>
+            </div>
+        </div>
+
+        <div class="transport">
+            <button id="toggleBtn">INITIATE SEQUENCE</button>
+        </div>
+        <div class="utility-bar" aria-label="Project and export tools">
+            <button class="utility-btn primary" id="saveProjectBtn">💾 SAVE PROJECT</button>
+            <button class="utility-btn" id="loadProjectBtn">↥ LOAD PROJECT</button>
+            <button class="utility-btn midi" id="exportMidiBtn">⇩ EXPORT MIDI</button>
+            <button class="utility-btn" id="randomiseBtnMobile">Ω RANDOMISE</button>
+            <input id="projectFileInput" type="file" accept="application/json,.json,.orion">
+        </div>
+
+        <div class="main-layout">
+            <div class="controls-grid">
+                <div class="control-block">
+                    <label>STYLE MACRO</label><select id="genreSelect"></select>
+                    <label>SUB-GENRE</label><select id="subGenreSelect"></select>
+                </div>
+                <div class="control-block">
+                    <label>MASTER SOUND</label><select id="masterSoundSelect">
+                        <option value="neutral">Neutral Flat</option>
+                        <option value="edm">EDM Mixing/Master</option>
+                        <option value="lofi">Lo-Fi Radio</option>
+                        <option value="sheffield">Sheffield Steel</option>
+                        <option value="cinematic">Cinematic Wide</option>
+                        <option value="vinyl">1970s Vinyl</option>
+                    </select>
+                </div>
+                <div class="control-block">
+                    <label id="rootLabel">ROOT/KARAR</label><select id="rootSelect"></select>
+                    <label id="scaleLabel">SCALE/MAQAM</label><select id="scaleSelect"></select>
+                </div>
+                <div class="control-block">
+                    <label>TEMPO: <span id="tempoDisp" class="val-disp">120</span></label><input type="range" id="tempoSlider" min="40" max="220" value="120">
+                    <label>GEN BIAS: <span id="moodDisp" class="val-disp">50</span>%</label><input type="range" id="moodSlider" min="0" max="100" value="50">
+                </div>
+                <div class="control-block">
+                    <label>PLAYBACK MODE</label><select id="playbackMode"><option value="sequencer">Sequencer</option><option value="generative" selected>Generative Brain</option></select>
+                    <label>TEMPERAMENT</label><select id="tempSelect" class="global-mode-select"></select>
+                </div>
+                <div class="control-block" id="drumMatrixControls" style="display:none;">
+                    <label>RHYTHM TYPE</label><select id="rhythmStyleSelect"></select>
+                    <label>SYNC STATUS</label><div style="font-size:5px; color:var(--led)">SEQUENCER INTEGRATED</div>
+                </div>
+            </div>
+
+            <!-- Integrated Mixer/Performance Flippable Card -->
+            <div class="mixer-container">
+                <div class="mixer-card" id="globalMixerCard">
+                    <div class="mixer-front" id="mixerFront"></div>
+                    <div class="mixer-back" id="mixerBack">
+                        <div class="perf-header">
+                            <span id="perfInstrumentTitle" style="color:var(--led); font-size:7px;">CALIBRATION</span>
+                            <button class="row-action-btn" onclick="flipMixerCard()">↲ FLIP BACK</button>
+                        </div>
+                        <div id="singingExtraControls" style="display:none; margin-bottom:10px; border:1px solid #333; padding:5px; border-radius:2px;">
+                            <label style="font-size:4px;">VOCAL ENGINE</label>
+                            <div style="display:flex; gap:10px; margin-top:4px;">
+                                <select id="singingModeSelect" style="flex:1;">
+                                    <option value="choir">ENSEMBLE CHOIR</option>
+                                    <option value="voice">FORMANT VOICE</option>
+                                </select>
+                                <select id="vocalPhonemeSelect" style="flex:1;">
+                                    <option value="ah">AH (WORD 1)</option>
+                                    <option value="oh">OH (WORD 2)</option>
+                                    <option value="ee">EE (WORD 3)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="perf-grid-area" id="perfGridArea"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sequencer-container" id="seqContainer">
+            <div id="trackTabs" style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;">
+                <div class="track-tab drums" id="tab-drums" onclick="setEditTrack('drums')">DRUMS</div>
+                <div class="track-tab active" id="tab-lead" onclick="setEditTrack('lead')">LEAD</div>
+                <div class="track-tab" id="tab-bass" onclick="setEditTrack('bass')">BASS</div>
+                <div class="track-tab" id="tab-brass" onclick="setEditTrack('brass')">BRASS</div>
+                <div class="track-tab" id="tab-strings" onclick="setEditTrack('strings')">STRINGS</div>
+                <div class="track-tab" id="tab-pluck" onclick="setEditTrack('pluck')">PLUCK</div>
+                <div class="track-tab" id="tab-chords" onclick="setEditTrack('chords')">CHRDS</div>
+                <div class="track-tab" id="tab-drone" onclick="setEditTrack('drone')">DRONE</div>
+                <div class="track-tab" id="tab-singing" onclick="setEditTrack('singing')">VOX</div>
+            </div>
+            <div id="inputPalette"></div>
+            <div id="sequencerGridArea"></div>
+        </div>
+
+        <div class="status-display">
+            <div>STEP: <span id="beatDisp" class="val-disp">0</span></div>
+            <div>SIG: <span id="sigDisp" class="val-disp">4/4</span></div>
+            <div style="color:var(--led)">MK LXI // MASTER BUS ARMED</div>
+        </div>
+    </div>
+
+    <script src="js/part1.js"></script>
+<script src="js/part2.js"></script>
+<script src="js/part3.js"></script>
+<script src="js/part4.js"></script>
+<script src="js/part5.js"></script>
+<script src="js/part6.js"></script>
+<script src="js/part7.js"></script>
+<script src="js/part8.js"></script>
+<script src="js/part9.js"></script>
+<script>document.addEventListener('click', e => { if (e.target.closest('.step-btn,.palette-btn,.row-master-toggle,.track-tab,.part-row,.row-action-btn,.utility-btn')) scheduleSave(); }, {passive:true});</script>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
