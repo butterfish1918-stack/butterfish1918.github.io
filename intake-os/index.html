@@ -11,57 +11,113 @@
     <meta name="description" content="A tactile breathing protocol timer with procedural audio and reactive visuals.">
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
-    <title>INTAKE // OS v3.0</title>
+    <title>INTAKE // OS v3.1</title>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-
-    <div id="canvas-container">
+    <div id="canvas-container" aria-hidden="true">
         <canvas id="fluidCanvas"></canvas>
     </div>
 
     <div id="ui-layer">
-        <div id="breath-guide"></div>
+        <div id="breath-guide" aria-hidden="true"></div>
+        <div class="axis axis-x" aria-hidden="true"></div>
+        <div class="axis axis-y" aria-hidden="true"></div>
 
         <div id="active-hud">
-            <div class="hud-top">
+            <div class="session-progress" aria-hidden="true"><span id="session-progress-fill"></span></div>
+
+            <div class="hud-top hud-rail">
                 <span id="current-mode-name">MODE: NULL</span>
+                <span class="hud-status"><i></i> LIVE</span>
                 <span id="litres-display">CYCLES: 0</span>
             </div>
 
             <div id="center-display">
+                <div class="instrument-mark">RESPIRATORY CONTROL / ACTIVE PROTOCOL</div>
                 <div id="timer">00:00</div>
                 <div id="phase-label">INIT</div>
+                <div id="mode-meta">SYSTEM READY</div>
                 <div class="session-controls">
                     <button id="sound-btn" aria-pressed="true">AUDIO: ON</button>
                     <button id="stop-btn">TERMINATE</button>
                 </div>
             </div>
 
-            <div class="hud-bottom">
-                <span id="freq-display">HZ: --</span>
+            <div class="hud-bottom hud-rail">
+                <span id="freq-display">AUDIO: --</span>
+                <span>INTAKE // OS 03.1</span>
                 <span>STATUS: ACTIVE</span>
             </div>
         </div>
     </div>
 
-    <div id="menu-layer">
-        <div class="menu-header">
-            <h1>INTAKE // OS</h1>
-            <div class="config-row">
-                <label for="duration-input">DURATION (MIN):</label>
-                <input type="number" id="duration-input" value="5" min="1" max="60" inputmode="numeric">
-            </div>
-            <div class="toggle-row">
-                <label class="toggle"><input type="checkbox" id="audio-toggle" checked> AUDIO</label>
-                <label class="toggle"><input type="checkbox" id="haptics-toggle" checked> HAPTICS</label>
-                <label class="toggle"><input type="checkbox" id="wake-toggle" checked> KEEP AWAKE</label>
-            </div>
-            <button id="install-btn" class="hidden">INSTALL ON DEVICE</button>
+    <main id="menu-layer">
+        <div class="menu-shell">
+            <header class="menu-header">
+                <div class="system-strip">
+                    <span><i class="system-dot"></i> RESPIRATORY REGULATION TERMINAL</span>
+                    <span>BUILD 03.1 / LOCAL</span>
+                </div>
+
+                <div class="brand-block">
+                    <div class="brand-kicker">PROCEDURAL BREATH CONTROL SYSTEM</div>
+                    <h1>INTAKE // OS</h1>
+                    <p>Reactive visual and acoustic protocols for controlled respiratory pacing.</p>
+                </div>
+
+                <section class="control-panel" aria-label="Session configuration">
+                    <div class="control-panel-title">
+                        <span>SESSION PARAMETERS</span>
+                        <span class="panel-code">CFG / 01</span>
+                    </div>
+
+                    <div class="config-grid">
+                        <label class="duration-control" for="duration-input">
+                            <span class="control-label">DURATION</span>
+                            <span class="duration-input-wrap">
+                                <input type="number" id="duration-input" value="5" min="1" max="60" inputmode="numeric" aria-label="Duration in minutes">
+                                <span>MIN</span>
+                            </span>
+                        </label>
+
+                        <div class="toggle-row">
+                            <label class="toggle">
+                                <input type="checkbox" id="audio-toggle" checked>
+                                <span class="toggle-indicator" aria-hidden="true"></span>
+                                <span>AUDIO</span>
+                            </label>
+                            <label class="toggle">
+                                <input type="checkbox" id="haptics-toggle" checked>
+                                <span class="toggle-indicator" aria-hidden="true"></span>
+                                <span>HAPTICS</span>
+                            </label>
+                            <label class="toggle">
+                                <input type="checkbox" id="wake-toggle" checked>
+                                <span class="toggle-indicator" aria-hidden="true"></span>
+                                <span>KEEP AWAKE</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button id="install-btn" class="hidden">INSTALL ON DEVICE</button>
+                </section>
+            </header>
+
+            <section class="protocol-section" aria-label="Protocol library">
+                <div class="section-heading">
+                    <span>PROTOCOL LIBRARY</span>
+                    <span>25 ROUTINES / 05 CLASSES</span>
+                </div>
+                <div id="protocol-container"></div>
+            </section>
+
+            <footer class="safety-note">
+                <span class="safety-tag">SAFETY</span>
+                <span>Use seated or lying down. Never use breath-hold or rapid-breath protocols while driving, in water, or where fainting could cause injury. Stop if you feel dizzy, numb, or unwell.</span>
+            </footer>
         </div>
-        <div id="protocol-container"></div>
-        <div class="safety-note">Use seated or lying down. Never use breath-hold or rapid-breath protocols while driving, in water, or where fainting could cause injury. Stop if you feel dizzy, numb, or unwell.</div>
-    </div>
+    </main>
 
     <script src="./data.js"></script>
     <script src="./audio.js"></script>
