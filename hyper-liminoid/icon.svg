@@ -8,7 +8,7 @@
     </radialGradient>
     <filter id="blur"><feGaussianBlur stdDeviation="14"/></filter>
   </defs>
-  <rect width="512" height="512" rx="96" fill="#010101"/>
+  <rect width="512" height="512" fill="#010101"/>
   <circle cx="256" cy="256" r="170" fill="url(#g)" filter="url(#blur)"/>
   <circle cx="256" cy="256" r="128" fill="none" stroke="#3f3f46" stroke-width="2"/>
   <circle cx="256" cy="256" r="92" fill="none" stroke="#18181b" stroke-width="2"/>
