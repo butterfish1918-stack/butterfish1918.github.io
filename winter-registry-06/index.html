@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#11130f" />
+  <meta name="description" content="A first-person administrative survival game about a frozen district and thirty lives." />
+  <title>The Winter Registry — 0.6.1 Clean Village Build</title>
+  <link rel="icon" href="../winter-registry/icon.svg?clean=0601" type="image/svg+xml" />
+  <link rel="stylesheet" href="../winter-registry/v03.css?clean=0601-20260913" />
+  <link rel="stylesheet" href="../winter-registry/v04.css?clean=0601-20260913" />
+</head>
+<body>
+  <main id="app">
+    <section id="titleScreen" class="screen active">
+      <div class="title-scene" aria-hidden="true">
+        <div class="snow-layer snow-a"></div><div class="snow-layer snow-b"></div>
+        <div class="silhouette s1"></div><div class="silhouette s2"></div><div class="silhouette s3"></div>
+      </div>
+      <div class="title-card">
+        <div class="eyebrow">MUNICIPAL SURVIVAL DIRECTORATE · DISTRICT 7-Б</div>
+        <h1>THE WINTER<br><span>REGISTRY</span></h1>
+        <p class="tagline">Thirty people remain. Walk the district yourself. Learn what the ledger cannot tell you.</p>
+        <div class="cycle-strip">
+          <div><b>06:00–18:00</b><span>FIELD</span><small>Move · inspect · scavenge · assess</small></div>
+          <div><b>18:00–00:00</b><span>TRIAGE</span><small>Allocate food · heat · medicine</small></div>
+          <div><b>00:00–06:00</b><span>NIGHT</span><small>The district answers back</small></div>
+        </div>
+        <div class="title-actions">
+          <button id="newGameBtn" class="primary">Begin New Administration</button>
+          <button id="continueBtn" class="secondary" disabled>Continue</button>
+          <button id="installBtn" class="ghost hidden">Install on Device</button>
+        </div>
+        <p class="small-note">BUILD 0.6.1 CLEAN · long sightlines · low perimeter fence · car-blocked main entrance · CACHE-FREE TEST BUILD</p>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <header class="hud-top">
+        <div class="brand"><b>THE WINTER REGISTRY</b><span id="phaseLabel">FIELD</span></div>
+        <div class="hud-stats">
+          <div><span>DAY</span><b id="dayLabel">01</b></div>
+          <div><span>TIME</span><b id="timeLabel">06:00</b></div>
+          <div><span>ALIVE</span><b id="aliveLabel">30</b></div>
+          <div><span>FOOD</span><b id="foodStock">14</b></div>
+          <div><span>HEAT</span><b id="heatStock">12</b></div>
+          <div><span>MED</span><b id="medStock">4</b></div>
+        </div>
+        <div class="hud-actions"><button id="helpBtn" aria-label="Tutorial">?</button><button id="saveBtn" aria-label="Save">▣</button></div>
+      </header>
+
+      <section id="fieldView" class="view active">
+        <div class="first-person-shell">
+          <canvas id="world" aria-label="First person view of the district"></canvas>
+          <div id="screenFx" class="screen-fx"></div>
+          <div class="visor-grain"></div>
+          <div class="crosshair"><i></i><i></i></div>
+          <div id="objective" class="objective"><span>DIRECTIVE</span><b id="objectiveTitle">Get your bearings</b><p id="objectiveBody">Move through the district. Inspect marked sites before dusk.</p></div>
+          <div id="interactionHint" class="interaction-hint hidden"><span id="interactionKey">F</span><b id="interactionText">Inspect</b><small id="interactionSub">—</small></div>
+          <div id="feedbackFeed" class="feedback-feed"></div>
+          <div id="minimap" class="minimap"><canvas id="mapCanvas" width="160" height="160"></canvas><small>District 7-Б</small></div>
+          <div class="desktop-help">WASD move · Q/E turn · click-drag look · F interact</div>
+          <div class="touch-controls" id="touchControls">
+            <div class="move-pad">
+              <button data-move="forward">▲</button>
+              <div><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
+            </div>
+            <div class="look-pad"><button data-look="left">↶</button><button id="interactBtn" class="interact">INTERACT</button><button data-look="right">↷</button></div>
+          </div>
+        </div>
+
+        <aside class="field-panel">
+          <section><div class="panel-title">FIELD BAG</div><div class="bag-grid"><div><span>Nutrition</span><b id="bagFood">14</b></div><div><span>Heat</span><b id="bagHeat">12</b></div><div><span>Medicine</span><b id="bagMed">4</b></div><div><span>Scrap</span><b id="scrapStock">0</b></div></div></section>
+          <section><div class="panel-title">FIELD RECORD</div><div id="fieldLog" class="field-log"></div></section>
+          <section class="panel-bottom"><button id="townHallBtn" class="secondary wide">Return to Town Hall</button></section>
+        </aside>
+      </section>
+
+      <section id="ledgerView" class="view ledger-view">
+        <div class="ledger-shell">
+          <div class="ledger-head">
+            <div><div class="eyebrow dark">EVENING PROVISIONAL LEDGER</div><h2>CALCULUS OF TRIAGE</h2><p>Set group policy, then override individual residents where necessary. The night engine will resolve the consequences.</p></div>
+            <div class="stock-box"><span>AVAILABLE</span><b id="ledgerFood">0 F</b><b id="ledgerHeat">0 H</b><b id="ledgerMed">0 M</b></div>
+          </div>
+          <div id="policyGrid" class="policy-grid"></div>
+          <div class="ledger-tools"><input id="residentSearch" placeholder="Search resident / role"/><select id="residentFilter"><option value="all">All residents</option><option value="critical">Critical</option><option value="dissent">High dissent</option><option value="known">Assessed</option><option value="mutated">Mutated</option></select><button id="fitPlanBtn" class="secondary">Fit plan to stock</button><button id="autoMedicineBtn" class="secondary">Auto medicine</button></div>
+          <div id="projectionText" class="projection"></div>
+          <div id="residentCards" class="resident-cards"></div>
+          <div class="ledger-footer"><button id="backToFieldBtn" class="ghost">Return to Field</button><button id="sealLedgerBtn" class="danger">Seal Ledger & End Day</button></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="modalLayer" class="modal-layer hidden"><div id="modalCard" class="modal-card"></div></div>
+  <div id="tutorialLayer" class="tutorial-layer hidden"><div id="tutorialCard" class="tutorial-card"></div></div>
+  <div id="nightCurtain" class="night-curtain hidden"><div><span>00:00</span><b>THE DISTRICT GOES DARK</b><small>Calculating hunger · cold · radiation · dissent</small></div></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="./clean06.js?clean=0601-20260913" defer></script>
+</body>
+</html>
