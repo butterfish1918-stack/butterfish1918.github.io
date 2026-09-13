@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pain-engine-ios-v12-mono-register-cloud';
+const CACHE_NAME = 'pain-engine-ios-v13-winter-registry-bypass';
 const scopeUrl = self.registration.scope;
 const shellUrl = (path) => new URL(path, scopeUrl).toString();
 const APP_SHELL = [
@@ -22,18 +22,21 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key !== CACHE_NAME && !key.startsWith('heliocentric-')).map((key) => caches.delete(key))
-    ))
+    )).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Heliocentric is an independent sub-app. Do not let the root Pain Engine
-  // cache intercept its JavaScript/assets or substitute the root index page.
   const requestUrl = new URL(event.request.url);
-  if (requestUrl.pathname.includes('/heliocentric/')) return;
+  // Independent sub-apps: never let the root Pain Engine cache intercept them.
+  if (
+    requestUrl.pathname.includes('/heliocentric/') ||
+    requestUrl.pathname.includes('/winter-registry/') ||
+    requestUrl.pathname.includes('/winter-registry-06/') ||
+    requestUrl.pathname.includes('/winter-registry-062/')
+  ) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
