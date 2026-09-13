@@ -1,0 +1,37 @@
+function showModal(html){clearMovementState();const layer=$('#modalLayer');$('#modalCard').innerHTML=html;layer.classList.remove('hidden');layer.setAttribute('aria-hidden','false')}
+function hideModal(){const layer=$('#modalLayer');if(!layer)return;layer.classList.add('hidden');layer.setAttribute('aria-hidden','true');clearMovementState();if(state&&state.phase==='field')focusField()}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add('hidden'),2200)}
+const TUTORIAL=[
+{title:'You are physically in the district now',body:'This version is first person. Walk with WASD or the touch pad. Turn with Q/E, click-drag, or the curved-arrow buttons.',action:'Continue'},
+{title:'Find a marked location',body:'Site names appear in the world and on the small map. Walk toward one until the INTERACT prompt appears.',action:'Show me a nearby site',run:()=>faceNearestSite()},
+{title:'Actions cost daylight',body:'Searching a room, interviewing a household and crossing the district all consume the same finite day. The clock at the top is part of the survival system.',action:'Continue'},
+{title:'Get supplies or information',body:'Interact with a warehouse, workshop, clinic or household. Supplies change immediately and the screen will now visibly react to successful actions.',action:'Continue'},
+{title:'Information is survival',body:'Residents you assess reveal exact condition and dissent in the ledger. Unassessed people remain estimates, and those estimates can mislead you.',action:'Continue'},
+{title:'Return to Town Hall',body:'At any point you can return to the ledger. At 18:00 field operations end automatically.',action:'Open ledger',run:()=>openLedger()},
+{title:'Set tonight’s policy',body:'Group sliders set defaults. Resident cards let you override food, heat and medicine. The projection panel turns red if the plan exceeds stock.',action:'Continue'},
+{title:'Seal the ledger',body:'Once the plan fits, end the day. The night resolves hunger, cold, radiation, dissent, death and mutation. Tomorrow you walk through what remains.',action:'Finish tutorial',run:()=>{localStorage.setItem(TUTORIAL_KEY,'done');stopTutorial()}}
+];
+function startTutorial(step=0){tutorial={active:true,step};renderTutorial()}
+function renderTutorial(){const s=TUTORIAL[tutorial.step];if(!s)return stopTutorial();$('#tutorialCard').innerHTML=`<div class="step">GUIDED ORIENTATION · ${tutorial.step+1}/${TUTORIAL.length}</div><h2>${escapeHtml(s.title)}</h2><p>${escapeHtml(s.body)}</p><div class="tutorial-actions"><button id="tutorialSkip" class="ghost">Skip</button><button id="tutorialNext" class="primary">${escapeHtml(s.action)}</button></div>`;$('#tutorialLayer').classList.remove('hidden');$('#tutorialSkip').onclick=()=>{localStorage.setItem(TUTORIAL_KEY,'done');stopTutorial()};$('#tutorialNext').onclick=()=>{if(s.run)s.run();if(tutorial.active){tutorial.step++;if(tutorial.step<TUTORIAL.length)renderTutorial();else stopTutorial()}}}
+function stopTutorial(){tutorial.active=false;$('#tutorialLayer').classList.add('hidden');clearMovementState();if(state&&state.phase==='field')focusField()}
+function advanceTutorialByAction(a){if(!tutorial.active)return;if((a==='scavenge'&&tutorial.step===3)||(a==='assess'&&tutorial.step===4)||(a==='ledger'&&tutorial.step===5)){tutorial.step++;renderTutorial()}}
+function faceNearestSite(){let best=SITES[0],bd=1e9;for(const s of SITES){const d=Math.hypot(s.x-state.player.x,s.y-state.player.y);if(d<bd){bd=d;best=s}}state.player.a=Math.atan2(best.y-state.player.y,best.x-state.player.x);stopTutorial();feedback('Nearest site highlighted',`${best.name} is now directly ahead.`,'good');setTimeout(()=>startTutorial(2),1400)}
+function registerPWA(){if('serviceWorker'in navigator)Promise.resolve(null).catch(console.warn);window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installBtn').classList.add('hidden')}}
+function bind(){
+canvas=$('#world');ctx=canvas.getContext('2d');mapCanvas=$('#mapCanvas');mapCtx=mapCanvas.getContext('2d');canvas.tabIndex=0;
+$('#newGameBtn').onclick=()=>{startNew();focusField()};
+$('#continueBtn').onclick=()=>{if(load()){feedback('File restored','Continue the current day.','good');if(state.phase==='field')focusField()}else toast('No compatible 0.6.x save found')};
+$('#saveBtn').onclick=()=>save(true);$('#helpBtn').onclick=()=>startTutorial(0);$('#interactBtn').onclick=interact;$('#townHallBtn').onclick=openLedger;$('#backToFieldBtn').onclick=closeLedger;$('#sealLedgerBtn').onclick=resolveNight;$('#fitPlanBtn').onclick=fitPlan;$('#autoMedicineBtn').onclick=autoMedicine;$('#residentSearch').oninput=renderLedger;$('#residentFilter').onchange=renderLedger;
+$('#modalLayer').addEventListener('pointerdown',e=>{if(e.target===$('#modalLayer'))hideModal()});
+window.addEventListener('resize',()=>{if(state&&state.phase==='field')resize()});
+const moveCodes=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']);
+window.addEventListener('keydown',e=>{if(e.code==='Escape'){const ml=$('#modalLayer'),tl=$('#tutorialLayer');if(ml&&!ml.classList.contains('hidden')){hideModal();e.preventDefault();return}if(tl&&!tl.classList.contains('hidden')){stopTutorial();e.preventDefault();return}if(state&&state.phase==='ledger'&&state.minutes<1080){closeLedger();e.preventDefault();return}}if(moveCodes.has(e.code)){if(state&&state.phase==='field'&&!fieldUiBlocked()){keys[e.code]=true;e.preventDefault()}return}if(e.code==='KeyF'&&state&&state.phase==='field'&&!fieldUiBlocked()){e.preventDefault();interact()}},true);
+window.addEventListener('keyup',e=>{if(moveCodes.has(e.code)){keys[e.code]=false;e.preventDefault()}},true);
+window.addEventListener('blur',clearMovementState);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearMovementState()});
+canvas.addEventListener('pointerdown',e=>{dragging=true;lastPointerX=e.clientX;try{canvas.focus({preventScroll:true})}catch(_){}canvas.setPointerCapture?.(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!dragging||!state||state.phase!=='field'||fieldUiBlocked())return;const dx=e.clientX-lastPointerX;lastPointerX=e.clientX;state.player.a+=dx*.006});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
+$$('[data-move]').forEach(b=>{const k=b.dataset.move,on=e=>{if(state&&state.phase==='field'&&!fieldUiBlocked()){touch[k]=true;e.preventDefault()}},off=()=>touch[k]=false;b.addEventListener('pointerdown',on);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,off))});
+$$('[data-look]').forEach(b=>{const k=b.dataset.look==='left'?'lookL':'lookR',on=e=>{if(state&&state.phase==='field'&&!fieldUiBlocked()){touch[k]=true;e.preventDefault()}},off=()=>touch[k]=false;b.addEventListener('pointerdown',on);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,off))});
+window.__WR_DEBUG__={get state(){return state},get player(){return state?{...state.player}:null},get phase(){return state?.phase||null}};
+updateContinue();registerPWA();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
