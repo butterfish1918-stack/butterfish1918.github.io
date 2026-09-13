@@ -4,23 +4,24 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#11130f" />
-  <title>The Winter Registry — loading 0.6.4</title>
+  <title>The Winter Registry — loading 0.6.5</title>
   <style>html,body{margin:0;min-height:100%;background:#11130f;color:#ddd9c9;font-family:monospace}.boot{min-height:100vh;display:grid;place-items:center;letter-spacing:.12em}</style>
 </head>
 <body>
-  <div class="boot">LOADING WINTER REGISTRY 0.6.4…</div>
+  <div class="boot">LOADING WINTER REGISTRY 0.6.5…</div>
   <script>
   (async()=>{
     try{
-      const response=await fetch('../winter-registry/index.html?template=wr064-20260913b',{cache:'no-store'});
+      const response=await fetch('../winter-registry/index.html?template=wr065-20260913',{cache:'no-store'});
       if(!response.ok)throw new Error('template '+response.status);
       let html=await response.text();
       html=html.replace(/href="\.\//g,'href="../winter-registry/');
-      html=html.replace(/<script src="\.\/[^\"]+" defer><\/script>/,'<script src="./v064.js?wr064=20260913b" defer><\/script>');
-      html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>The Winter Registry — 0.6.4 Persistent Village Build<\/title>');
+      html=html.replace(/<script src="\.\/[^\"]+" defer><\/script>/,'<script src="./v065.js?wr065=20260913" defer><\/script>');
+      html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>The Winter Registry — 0.6.5 Stable Controls Build<\/title>');
+      html=html.replace(/<p class="small-note">[\s\S]*?<\/p>/,'<p class="small-note">BUILD 0.6.5 · stable WASD · safe field/ledger transitions · persistent village · no PWA cache<\/p>');
       document.open();document.write(html);document.close();
     }catch(err){
-      document.body.innerHTML='<main style="padding:32px"><h1>Winter Registry 0.6.4 failed to load</h1><pre>'+String(err)+'</pre></main>';
+      document.body.innerHTML='<main style="padding:32px"><h1>Winter Registry 0.6.5 failed to load</h1><pre>'+String(err)+'</pre></main>';
     }
   })();
   </script>
