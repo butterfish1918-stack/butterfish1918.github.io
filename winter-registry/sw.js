@@ -1,5 +1,5 @@
-const CACHE='winter-registry-v05-1';
-const ASSETS=['./','./index.html','./v03.css','./v04.css','./v03.js','./v05.js','./v05-render.txt','./manifest.webmanifest','./icon.svg'];
+const CACHE='winter-registry-v06';
+const ASSETS=['./','./index.html','./v03.css','./v04.css','./v03.js','./v05-render.txt','./v06.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request).then(c=>c||caches.match('./index.html'))))});
