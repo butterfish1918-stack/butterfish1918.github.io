@@ -2,7 +2,7 @@
    Only explicitly listed, correctly typed static assets are cached. Auth pages,
    unexpected URLs and redirects are NEVER put into Cache Storage. Replacements
    remain waiting until the writer explicitly approves an update. */
-const CACHE = 'writing-workbench-m2-3-static-v14';
+const CACHE = 'writing-workbench-m2-3-static-v15';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './storage.mjs',
   './diagnostics.mjs', './pwa-updates.mjs', './vault.mjs',
@@ -20,7 +20,7 @@ function kind(pathname) {
   if (pathname === ROOT_PATH || pathname.endsWith('/index.html')) return 'html';
   if (pathname.endsWith('.css')) return 'css';
   if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) return 'js';
-  if (pathname.endsWith('.webmanifest')) return 'manifest';
+  if (pathname.endsWith('/manifest.json') || pathname.endsWith('.webmanifest')) return 'manifest';
   if (pathname.endsWith('.png')) return 'image';
   return 'unknown';
 }
