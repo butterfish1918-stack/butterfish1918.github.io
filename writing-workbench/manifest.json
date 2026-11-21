@@ -1,0 +1,49 @@
+{
+  "name": "Writing Workbench \u2014 Typewriter",
+  "short_name": "Workbench",
+  "description": "A local-first writing studio with offline support.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#120728",
+  "theme_color": "#120728",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New fragment",
+      "short_name": "Capture",
+      "url": "./index.html?action=fragment",
+      "icons": [
+        {
+          "src": "./assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Resume writing",
+      "short_name": "Write",
+      "url": "./index.html?action=write",
+      "icons": [
+        {
+          "src": "./assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

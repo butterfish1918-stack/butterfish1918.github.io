@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#120728" />
+  <meta name="description" content="Writing Workbench — an offline-first typewriter workspace for personal writing." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Workbench" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Writing Workbench M2.3 — Typewriter</title>
+</head>
+<body data-theme="midnight">
+  <noscript>Writing Workbench requires JavaScript to save and edit your drafts locally.</noscript>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="mobile-menu" class="icon-btn mobile-only" aria-label="Open library" title="Library">☰</button>
+        <div class="brand-mark" aria-hidden="true">W<span>∕</span>W</div>
+        <div class="brand-label"><strong>WRITING WORKBENCH</strong><small>PERSONAL WRITING STATION</small></div>
+      </div>
+      <div class="topbar-right">
+        <button id="status" class="status saved" title="Local save details" aria-live="polite"><span class="status-dot"></span><span id="status-label">Opening local workspace</span></button>
+        <button id="command-button" class="nav-button" title="Command palette (Ctrl/⌘ K)">COMMANDS <kbd>⌘ K</kbd></button>
+        <button id="focus-button" class="icon-btn" title="Toggle focus mode" aria-label="Toggle focus mode">▣</button>
+      </div>
+    </header>
+    <div class="workspace">
+      <div id="mobile-backdrop" class="mobile-backdrop" hidden></div>
+      <aside class="sidebar" id="sidebar" aria-label="Project and scene library">
+        <div class="sidebar-top">
+          <div class="eyebrow">LIBRARY / LOCAL</div>
+          <div class="project-picker-row">
+            <select id="project-select" aria-label="Active project"></select>
+            <button id="new-project" class="small-square" title="New project" aria-label="New project">+</button>
+          </div>
+        </div>
+        <div class="sidebar-section-title"><span>MANUSCRIPT</span><div class="section-buttons"><button id="manuscript-search" class="mini-btn" title="Search across writing" aria-label="Search manuscripts">⌕</button><button id="new-scene" class="mini-btn" title="New scene" aria-label="New scene">+</button></div></div>
+        <div id="scene-list" class="scene-list"></div>
+        <div class="sidebar-section-title section-spaced"><span>FRAGMENTS</span><button id="new-fragment" class="mini-btn" title="Capture fragment (Ctrl/⌘ J)" aria-label="Capture fragment">+</button></div>
+        <div id="fragment-list" class="fragment-list"></div>
+        <div class="sidebar-bottom">
+          <button id="backup-button" class="sidebar-action">↓ <span>Export project backup</span></button>
+          <button id="workspace-backup-button" class="sidebar-action">⇩ <span>Backup all projects</span></button>
+          <button id="history-button" class="sidebar-action">◷ <span>Scene snapshots</span></button>
+          <button id="compare-button" class="sidebar-action">≍ <span>Compare drafts &amp; checkpoints</span></button>
+          <button id="import-button" class="sidebar-action">↑ <span>Import archive</span></button>
+          <button id="verify-backup-button" class="sidebar-action">✓ <span>Verify backup file</span></button>
+          <input type="file" id="verify-file" accept=".json,.wwproject.json,.wwworkspace.json,application/json" hidden />
+          <input type="file" id="import-file" accept=".json,.wwproject.json,.wwworkspace.json,application/json" hidden />
+          <div class="sidebar-footnote">LOCAL WORKSPACE · NO CLOUD SYNC</div>
+        </div>
+      </aside>
+      <main class="main-panel" id="main-panel">
+        <div class="editor-tools" id="editor-tools">
+          <div class="editor-path"><span id="path-project">PROJECT</span><span class="path-sep">/</span><span id="path-scene">SCENE 01</span></div>
+          <div class="tool-actions">
+            <button id="theme-button" class="tool-button" title="Change writing theme">◐ <span id="theme-name">MIDNIGHT</span></button>
+            <button id="typewriter-button" class="tool-button active" aria-pressed="true" title="Keep the current line comfortably positioned">⌘ <span>TYPEWRITER</span></button>
+            <button id="branches-button" class="tool-button" title="Manage alternative drafts">◇ <span id="branch-name">MAIN</span></button>
+            <button id="snapshot-button" class="tool-button" title="Save a scene snapshot">◷ <span>SNAPSHOT</span></button>
+            <button id="compare-toolbar" class="tool-button" title="Compare revisions — read only">≍ <span>COMPARE</span></button>
+            <button id="export-text-button" class="tool-button" title="Export manuscript as plain text">⇩ <span>TEXT</span></button>
+          </div>
+        </div>
+        <div class="page-stage" id="page-stage">
+          <div class="editor-paper" id="editor-paper">
+            <div class="page-kicker">MANUSCRIPT <span>—</span> <span id="draft-indicator">WORKING DRAFT</span></div>
+            <input id="scene-title" class="scene-title" aria-label="Scene title" placeholder="Untitled scene" maxlength="140" spellcheck="false" />
+            <label for="editor" class="visually-hidden">Manuscript text editor</label>
+            <textarea id="editor" class="editor" placeholder="Begin writing here…" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
+            <div class="editor-bottom"><span id="word-count">0 WORDS</span><span id="cursor-info">LINE 1 · COLUMN 1</span></div>
+          </div>
+        </div>
+      </main>
+      <div class="mobile-actions mobile-only" id="mobile-actions">
+        <button id="mobile-write" title="Write">✎ <span>WRITE</span></button>
+        <button id="mobile-fragment" title="Capture fragment">＋ <span>CAPTURE</span></button>
+        <button id="mobile-library" title="Library">☷ <span>LIBRARY</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+  <div id="toast-root" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
